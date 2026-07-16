@@ -567,9 +567,25 @@ public class LorieView extends SurfaceView implements InputStub {
     private final SurfaceHolder.Callback mSurfaceCallback = new SurfaceHolder.Callback() {
         @Override public void surfaceCreated(@NonNull SurfaceHolder holder) {
             holder.setFormat(PixelFormat.BGRA_8888);
+            Log.i("LorieView", "surfaceCreated called!");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                android.widget.Toast.makeText(getContext(), "LorieView Surface Created!", android.widget.Toast.LENGTH_SHORT).show();
+            });
+            MainActivity.handler.post(() -> {
+                if (MainActivity.getInstance() != null) {
+                    LorieView.this.surfaceChanged(holder.getSurface());
+                    updateViewport();
+                }
+            });
         }
 
         @Override public void surfaceChanged(@NonNull SurfaceHolder holder, int f, int width, int height) {
+            Log.i("LorieView", "surfaceChanged called with width=" + width + ", height=" + height);
+            final int finalWidth = width;
+            final int finalHeight = height;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                android.widget.Toast.makeText(getContext(), "Surface Changed! " + finalWidth + "x" + finalHeight, android.widget.Toast.LENGTH_SHORT).show();
+            });
             LorieView.this.surfaceChanged(holder.getSurface());
             width = getMeasuredWidth();
             height = getMeasuredHeight();
@@ -588,6 +604,14 @@ public class LorieView extends SurfaceView implements InputStub {
     public LorieView(Context context, AttributeSet attrs, int defStyleAttr) { super(context, attrs, defStyleAttr); init(); }
     @SuppressWarnings("unused")
     public LorieView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) { super(context, attrs, defStyleAttr, defStyleRes); init(); }
+
+    static {
+        try {
+            System.loadLibrary("Xlorie");
+        } catch (Exception e) {
+            Log.e("LorieView", "Failed to load libXlorie", e);
+        }
+    }
 
     private void init() {
         getHolder().addCallback(mSurfaceCallback);
@@ -669,6 +693,13 @@ public class LorieView extends SurfaceView implements InputStub {
     }
 
     private void sendWindowChange() {
+        // REMOVED !connected() check to prevent deadlock.
+        // If we don't send a window change, the X server will deadlock waiting for the first client request!
+        // if (!connected()) {
+        //     Log.w("LorieView", "sendWindowChange called but not connected yet. Ignoring.");
+        //     return;
+        // }
+
         String name;
         int framerate = (int) (getDisplay() != null ? getDisplay().getRefreshRate() : 30);
 
@@ -679,6 +710,7 @@ public class LorieView extends SurfaceView implements InputStub {
         else
             name = "external";
 
+        Log.e("LorieView", "SENDING WINDOW CHANGE NATIVE: " + p.x + "x" + p.y + " framerate=" + framerate + " name=" + name);
         sendWindowChange(p.x, p.y, framerate, name);
     }
 
@@ -713,6 +745,14 @@ public class LorieView extends SurfaceView implements InputStub {
         Prefs prefs = MainActivity.getPrefs();
 
         int surfaceW = getMeasuredWidth(), surfaceH = getMeasuredHeight();
+        if (surfaceW == 0 || surfaceH == 0) {
+            android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
+            MainActivity.getRealMetrics(metrics);
+            surfaceW = metrics.widthPixels;
+            surfaceH = metrics.heightPixels;
+            Log.w("LorieView", "View not measured! Falling back to screen metrics: " + surfaceW + "x" + surfaceH);
+        }
+
         int availableLeft = contentInsets.left, availableTop = contentInsets.top;
         int availableW = Math.max(0, surfaceW - contentInsets.left - contentInsets.right);
         int availableH = Math.max(0, surfaceH - contentInsets.top - contentInsets.bottom);
@@ -742,6 +782,7 @@ public class LorieView extends SurfaceView implements InputStub {
             inputSourceWidth = p.x;
             inputSourceHeight = p.y;
         }
+        Log.e("LorieView", "updateViewport calling setViewport: left=" + viewport.left + " top=" + viewport.top + " width=" + viewport.width() + " height=" + viewport.height() + " px=" + p.x + " py=" + p.y + " zoom=" + rendererZoom);
         setViewport(viewport.left, viewport.top, viewport.width(), viewport.height(), p.x, p.y);
 
         updateInputTransform();
@@ -909,7 +950,7 @@ public class LorieView extends SurfaceView implements InputStub {
     @FastNative private native void setFiltering(int filtering);
     public @FastNative static native void connect(int fd);
     public @CriticalNative static native boolean connected();
-    @FastNative static native void startLogcat(int fd);
+    public @FastNative static native void startLogcat(int fd);
     @FastNative static native void setClipboardSyncEnabled(boolean enabled, boolean ignored);
     @FastNative public native void sendClipboardAnnounce();
     @FastNative public native void sendClipboardEvent(byte[] text);

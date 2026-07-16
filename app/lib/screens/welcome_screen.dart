@@ -113,7 +113,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             _featureChip(
                               Icons.security_rounded,
-                              'No Root Needed',
+                              'Root = H/A',
                             ),
                             _featureChip(
                               Icons.desktop_mac_rounded,
@@ -149,11 +149,11 @@ class WelcomeScreen extends StatelessWidget {
                                     secondaryAnimation,
                                     child,
                                   ) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: SlideTransition(
-                                        position:
-                                            Tween<Offset>(
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position:
+                                        Tween<Offset>(
                                               begin: const Offset(0, 0.05),
                                               end: Offset.zero,
                                             ).animate(
@@ -162,10 +162,10 @@ class WelcomeScreen extends StatelessWidget {
                                                 curve: Curves.easeOut,
                                               ),
                                             ),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
+                                    child: child,
+                                  ),
+                                );
+                              },
                               transitionDuration: const Duration(
                                 milliseconds: 400,
                               ),
@@ -226,7 +226,10 @@ class WelcomeScreen extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: DroidTheme.bodySm.copyWith(color: DroidTheme.textSecondary),
+            style: DroidTheme.bodySm.copyWith(
+              color: DroidTheme.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),

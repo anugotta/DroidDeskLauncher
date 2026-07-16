@@ -94,12 +94,14 @@ class DEPickerScreen extends StatelessWidget {
                       children: [
                         const Icon(Icons.phone_android, size: 14, color: DroidTheme.textMuted),
                         const SizedBox(width: 8),
-                        Text(
-                          '${state.deviceInfo['brand']} ${state.deviceInfo['model']} · '
-                          '${state.deviceInfo['totalRamMB']} MB RAM · '
-                          '${state.gpuType}',
-                          style: DroidTheme.monoSm,
-                          overflow: TextOverflow.ellipsis,
+                        Expanded(
+                          child: Text(
+                            '${state.deviceInfo['brand']} ${state.deviceInfo['model']} · '
+                            '${state.deviceInfo['totalRamMB']} MB RAM · '
+                            '${state.gpuType}',
+                            style: DroidTheme.monoSm,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

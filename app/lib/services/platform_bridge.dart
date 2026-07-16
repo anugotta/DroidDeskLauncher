@@ -2,8 +2,9 @@ import 'package:flutter/services.dart';
 
 /// Platform channel bridge to communicate with the Kotlin native layer.
 ///
-/// All heavy work (proot, rootfs, process management) runs on the Kotlin side.
-/// Flutter calls into Kotlin via MethodChannel and receives callbacks.
+/// All heavy work (bootstrap extraction, native pkg install, process management)
+/// runs on the Kotlin side. Flutter calls into Kotlin via MethodChannel and
+/// receives callbacks.
 class DroidDeskPlatform {
   static const _channel = MethodChannel('com.droiddesk/core');
 
@@ -66,7 +67,25 @@ class DroidDeskPlatform {
     await _channel.invokeMethod('setupBootstrap');
   }
 
-  // ── Rootfs ──
+  // ── Native Desktop Environment Installation (non-root fallback) ──
+
+  static Future<bool> installDesktopNative() async {
+    final result = await _channel.invokeMethod('installDesktopNative');
+    return result as bool? ?? false;
+  }
+
+  // ── Root / chroot support ──
+
+  static Future<bool> checkRoot() async {
+    final result = await _channel.invokeMethod('checkRoot');
+    return result as bool? ?? false;
+  }
+
+  static Future<void> resetRootCache() async {
+    await _channel.invokeMethod('resetRootCache');
+  }
+
+  // ── Rootfs Management (chroot mode) ──
 
   static Future<void> downloadRootfs(String distro) async {
     await _channel.invokeMethod('downloadRootfs', {'distro': distro});
@@ -76,9 +95,9 @@ class DroidDeskPlatform {
     await _channel.invokeMethod('extractRootfs');
   }
 
-  static Future<void> installDesktopEnvironment(String distro, {String type = 'minimal'}) async {
+  static Future<void> installDesktopEnvironment(String de, {String type = 'minimal'}) async {
     await _channel.invokeMethod('installDesktopEnvironment', {
-      'de': distro,
+      'de': de,
       'type': type,
     });
   }
@@ -87,7 +106,7 @@ class DroidDeskPlatform {
 
   static Future<void> startLinux({
     String de = 'xfce4',
-    String mode = 'vnc',
+    String mode = 'x11',
     int width = 1920,
     int height = 1080,
   }) async {

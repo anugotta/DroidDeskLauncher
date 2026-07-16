@@ -183,20 +183,21 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
   }
 
   Widget _buildChecklist(AppState state) {
+    final isChroot = state.hasRoot;
     final steps = [
       _ChecklistItem(
-        label: 'Bootstrap environment',
-        done: !state.isDownloading || state.downloadProgress > 0,
-        active: state.downloadProgress == 0 && state.isDownloading,
+        label: isChroot ? 'Root access confirmed' : 'Bootstrap environment',
+        done: state.hasRoot || (!state.isDownloading && state.downloadProgress == 0),
+        active: false,
       ),
       _ChecklistItem(
-        label: 'Download ${state.selectedDistro}',
+        label: isChroot ? 'Download Ubuntu rootfs' : 'Install native packages',
         done: state.downloadProgress >= 1.0,
         active: state.isDownloading,
         progress: state.isDownloading ? state.downloadProgress : null,
       ),
       _ChecklistItem(
-        label: 'Extract filesystem',
+        label: isChroot ? 'Extract rootfs' : 'Configure desktop',
         done: state.extractProgress >= 1.0,
         active: state.isExtracting,
         progress: state.isExtracting ? state.extractProgress : null,
@@ -286,14 +287,14 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
       );
     }
 
-    if (state.isExtracting) {
+    if (state.isExtracting || state.isInstallingDE) {
       return _PhaseInfo(
-        title: 'Extracting',
+        title: state.isInstallingDE ? 'Installing Desktop' : 'Extracting',
         message: state.extractStatus.isNotEmpty
             ? state.extractStatus
             : 'Extracting filesystem...',
         progress: 0.5 + state.extractProgress * 0.4, // 50–90% of total
-        icon: Icons.unarchive_rounded,
+        icon: state.isInstallingDE ? Icons.desktop_windows_rounded : Icons.unarchive_rounded,
         error: false,
         complete: false,
       );

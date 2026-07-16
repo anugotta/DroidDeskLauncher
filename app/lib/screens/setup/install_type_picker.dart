@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:droiddesk/theme/droid_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/screens/setup/setup_progress.dart';
+import 'package:droiddesk/screens/setup/de_picker.dart';
 
 class InstallTypePickerScreen extends StatelessWidget {
   const InstallTypePickerScreen({super.key});
@@ -41,8 +41,8 @@ class InstallTypePickerScreen extends StatelessWidget {
                 // ── Minimal Option ──
                 _buildOptionCard(
                   title: 'Minimal',
-                  description: 'Basic desktop experience. Includes XFCE4, Terminal, File Manager, and Browser. Perfect for limited storage.',
-                  size: '~200 MB',
+                  description: 'Basic desktop experience. Includes XFCE4, Terminal, File Manager, and core utilities. Perfect for limited storage.',
+                  size: '~1.2 GB',
                   icon: Icons.speed_rounded,
                   color: DroidTheme.secondary,
                   isSelected: state.installType == 'minimal',
@@ -55,7 +55,7 @@ class InstallTypePickerScreen extends StatelessWidget {
                 _buildOptionCard(
                   title: 'Full Workstation',
                   description: 'Complete suite. Includes LibreOffice, GIMP, VS Code, Node.js, Git, multimedia tools, and more.',
-                  size: '~1.2 GB',
+                  size: '~2.5 GB',
                   icon: Icons.work_rounded,
                   color: DroidTheme.primary,
                   isSelected: state.installType == 'full',
@@ -78,7 +78,7 @@ class InstallTypePickerScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).push(
                             PageRouteBuilder(
-                              pageBuilder: (context, animation, secondaryAnimation) => const SetupProgressScreen(),
+                              pageBuilder: (context, animation, secondaryAnimation) => const DEPickerScreen(),
                               transitionsBuilder: (context, animation, secondaryAnimation, child) {
                                 return FadeTransition(
                                   opacity: animation,
@@ -92,9 +92,9 @@ class InstallTypePickerScreen extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Install'),
+                            Text('Next'),
                             SizedBox(width: 4),
-                            Icon(Icons.download_rounded, size: 18),
+                            Icon(Icons.arrow_forward_rounded, size: 18),
                           ],
                         ),
                       ),

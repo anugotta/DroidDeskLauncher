@@ -60,6 +60,22 @@ class RootfsManager(private val context: Context) {
         return if (deConfigFile.exists()) deConfigFile.readText().trim() else ""
     }
 
+    fun getMissingPackages(): List<String> {
+        if (!isRootfsReady()) return listOf("rootfs")
+        val de = getInstalledDE().ifEmpty { "xfce4" }
+        val deBin = when (de) {
+            "lxqt" -> "usr/bin/lxqt-session"
+            "mate" -> "usr/bin/mate-session"
+            "kde" -> "usr/bin/startplasma-x11"
+            else -> "usr/bin/xfce4-session"
+        }
+        return if (File(rootfsDir, deBin).exists()) {
+            emptyList()
+        } else {
+            listOf(de)
+        }
+    }
+
     fun getRootfsPath(): String {
         return rootfsDir.absolutePath
     }

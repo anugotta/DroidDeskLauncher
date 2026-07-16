@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:droiddesk/theme/droid_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/screens/vnc_desktop_screen.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
 import 'package:droiddesk/screens/setup/de_install_screen.dart';
 
@@ -114,16 +113,13 @@ class HomeScreen extends StatelessWidget {
                                 color: state.isDEInstalled
                                     ? DroidTheme.success
                                     : DroidTheme.secondary,
-                                onTap: state.isDEInstalled
-                                    ? () {} // Disabled
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                const DEInstallScreen(),
-                                          ),
-                                        );
-                                      },
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const DEInstallScreen(),
+                                    ),
+                                  );
+                                },
                               ),
 
                               const SizedBox(height: 10),
@@ -136,17 +132,11 @@ class HomeScreen extends StatelessWidget {
                                     icon: Icons.fullscreen_rounded,
                                     title: 'Return to Desktop',
                                     subtitle:
-                                        'XFCE is currently running in background',
+                                        '${state.selectedDE.toUpperCase()} is currently running in background',
                                     color: DroidTheme.primary,
                                     gradient: DroidTheme.primaryGradient,
                                     onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const VncDesktopScreen(),
-                                        ),
-                                      );
+                                      state.launchDesktopActivity();
                                     },
                                   ),
                                 ),
@@ -180,35 +170,9 @@ class HomeScreen extends StatelessWidget {
                                       );
                                       return;
                                     }
-                                    final size = MediaQuery.of(context).size;
-                                    final double maxDim =
-                                        size.width > size.height
-                                        ? size.width
-                                        : size.height;
-                                    final double minDim =
-                                        size.width < size.height
-                                        ? size.width
-                                        : size.height;
-
-                                    // Calculate exact aspect ratio matching the phone in landscape
-                                    final int vncWidth = 1920;
-                                    final int vncHeight =
-                                        (1920 * (minDim / maxDim)).toInt();
-
                                     await state.startLinux(
-                                      mode: 'vnc',
-                                      width: vncWidth,
-                                      height: vncHeight,
+                                      mode: 'x11',
                                     );
-                                    if (context.mounted) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const VncDesktopScreen(),
-                                        ),
-                                      );
-                                    }
                                   }
                                 },
                               ),
@@ -220,37 +184,12 @@ class HomeScreen extends StatelessWidget {
                                 icon: Icons.terminal_rounded,
                                 title: 'Terminal',
                                 subtitle:
-                                    'Open a Linux shell in the proot environment',
+                                    'Open a Linux shell in the ${state.hasRoot ? 'chroot' : 'proot'} environment',
                                 color: DroidTheme.secondary,
                                 onTap: () => _showTerminal(context, state),
                               ),
 
                               const SizedBox(height: 10),
-
-                              // ── Install Apps ──
-                              // Row(
-                              //   children: [
-                              //     Expanded(
-                              //       child: _SmallActionCard(
-                              //         icon: Icons.add_circle_outline_rounded,
-                              //         title: 'Install Apps',
-                              //         color: DroidTheme.accent,
-                              //         onTap: () =>
-                              //             _showAppInstaller(context, state),
-                              //       ),
-                              //     ),
-                              //     const SizedBox(width: 10),
-                              //     Expanded(
-                              //       child: _SmallActionCard(
-                              //         icon: Icons.info_outline_rounded,
-                              //         title: 'System Info',
-                              //         color: DroidTheme.warning,
-                              //         onTap: () =>
-                              //             _showSystemInfo(context, state),
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
                             ]
                             .animate(interval: 80.ms)
                             .fadeIn(delay: 300.ms, duration: 400.ms)
@@ -414,12 +353,16 @@ class HomeScreen extends StatelessWidget {
 
   String _distroLabel(String distro) {
     switch (distro) {
+      case 'ubuntu-chroot':
+        return 'Ubuntu 24.04 (chroot)';
       case 'ubuntu':
         return 'Ubuntu 24.04';
       case 'alpine':
         return 'Alpine Linux 3.20';
       case 'kali':
         return 'Kali Linux';
+      case 'termux-native':
+        return 'Termux Native';
       default:
         return distro;
     }
@@ -686,7 +629,7 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'proot · ${widget.state.installedDistro}',
+                      widget.state.hasRoot ? 'chroot · ${_distroLabel(widget.state.installedDistro)}' : 'proot · ${widget.state.installedDistro}',
                       style: DroidTheme.monoSm,
                     ),
                   ],
@@ -764,6 +707,17 @@ class _TerminalSheetState extends State<_TerminalSheet> {
         );
       },
     );
+  }
+
+  String _distroLabel(String distro) {
+    switch (distro) {
+      case 'ubuntu-chroot':
+        return 'Ubuntu 24.04';
+      case 'termux-native':
+        return 'Termux';
+      default:
+        return distro;
+    }
   }
 }
 

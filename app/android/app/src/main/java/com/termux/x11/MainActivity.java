@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
             attachBaseContext(context);
         }
         if (lorieView == null) {
-            lorieView = new LorieView(this);
+            lorieView = new LorieView(context);
         }
     }
 
@@ -85,7 +85,20 @@ public class MainActivity extends Activity {
     }
 
     // JNI STUBS
-    public void clientConnectedStateChanged() {}
+    public void clientConnectedStateChanged() {
+        android.util.Log.e("MainActivity", "clientConnectedStateChanged called by native code!");
+        if (lorieView != null) {
+            handler.postDelayed(() -> {
+                android.util.Log.e("MainActivity", "Executing triggerCallback from MainActivity handler!");
+                lorieView.triggerCallback();
+            }, 200);
+            handler.postDelayed(() -> lorieView.triggerCallback(), 500);
+            handler.postDelayed(() -> lorieView.triggerCallback(), 1000);
+            handler.postDelayed(() -> lorieView.triggerCallback(), 2000);
+        } else {
+            android.util.Log.e("MainActivity", "lorieView is NULL in MainActivity!");
+        }
+    }
     public void showToast(String text) {}
     public void updateNotification() {}
 }

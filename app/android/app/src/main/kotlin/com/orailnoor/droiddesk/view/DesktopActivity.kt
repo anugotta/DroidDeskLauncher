@@ -5,20 +5,33 @@ import android.os.Bundle
 import android.graphics.Color
 import android.view.Window
 import android.view.WindowManager
+import android.view.SurfaceHolder
 import android.widget.FrameLayout
-import android.os.Handler
-import android.os.Looper
-import android.system.Os
 import android.util.Log
-import java.io.File
+import android.widget.Toast
+import android.widget.Button
+import android.view.Gravity
+import android.content.res.ColorStateList
 import com.termux.x11.MainActivity as TermuxMainActivity
 import com.termux.x11.LorieView
-import com.termux.x11.CmdEntryPoint
+import com.orailnoor.droiddesk.runtime.LinuxRuntime
+import com.orailnoor.droiddesk.runtime.ChrootRuntime
+import com.orailnoor.droiddesk.x11.X11ServiceClient
+import com.orailnoor.droiddesk.x11.X11InputController
 
 class DesktopActivity : Activity() {
     private var lorieView: LorieView? = null
-    private var isX11Started = false
+    private var connectionRequested = false
     private var isSetupDone = false
+    private var shouldStartSession = false
+    private var sessionMode = "termux"
+    private var desktopEnv = "xfce4"
+    private lateinit var linuxRuntime: LinuxRuntime
+    private lateinit var chrootRuntime: ChrootRuntime
+    private lateinit var placeholder: FrameLayout
+    private var x11ServiceClient: X11ServiceClient? = null
+    private var inputController: X11InputController? = null
+    private var inputModeButton: Button? = null
 
     companion object {
         private const val TAG = "DesktopActivity"
@@ -26,6 +39,12 @@ class DesktopActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        linuxRuntime = LinuxRuntime(this)
+        chrootRuntime = ChrootRuntime(this)
+        shouldStartSession = intent.getBooleanExtra("startSession", false)
+        sessionMode = intent.getStringExtra("mode") ?: if (chrootRuntime.hasRoot()) "chroot" else "termux"
+        desktopEnv = intent.getStringExtra("de") ?: "xfce4"
+
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -33,129 +52,147 @@ class DesktopActivity : Activity() {
         )
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // CRITICAL: Do NOT create LorieView here. Use a plain placeholder.
-        // This ensures onCreate is ultra-fast so the focus event is processed
-        // before the 5-second ANR timeout.
-        val placeholder = FrameLayout(this)
+        placeholder = FrameLayout(this)
         placeholder.setBackgroundColor(Color.BLACK)
         setContentView(placeholder)
 
-        Log.i(TAG, "DesktopActivity created with placeholder view")
+        Log.i(TAG, "DesktopActivity created mode=$sessionMode startSession=$shouldStartSession")
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && !isSetupDone) {
             isSetupDone = true
-            Log.i(TAG, "Window focused — scheduling LorieView setup")
-
-            // Set up the view immediately
+            Log.i(TAG, "Window focused — setting up LorieView")
             setupLorieView()
-
-            // Wait 500ms to ensure the Android SurfaceView is fully attached,
-            // measured, and its native surface (surfaceChanged) is created.
-            // Connecting XCB before the surface exists causes a silent native failure.
-            Handler(Looper.getMainLooper()).postDelayed({
-                startNativeX11()
-            }, 500)
         }
     }
 
     private fun setupLorieView() {
         Log.i(TAG, "Setting up LorieView")
+        X11InputController.configureDisplayScale()
         TermuxMainActivity.getInstance().initLorieView(this)
         lorieView = TermuxMainActivity.getInstance().lorieView
-        lorieView!!.setBackgroundColor(Color.TRANSPARENT)
-        
-        // Force the SurfaceView to composite ON TOP of the Activity window.
-        // This guarantees that even if the Android window has a black background
-        // or failed to punch a hole for the SurfaceView, the X11 surface will 
-        // be visible over everything.
-        lorieView!!.setZOrderOnTop(true)
-        
-        setContentView(lorieView)
-        Log.i(TAG, "LorieView set as content view")
+
+        // Keep Android overlay controls above the X11 SurfaceView.
+        lorieView!!.setZOrderOnTop(false)
+        placeholder.setBackgroundColor(Color.BLACK)
+
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        )
+        placeholder.addView(lorieView, params)
+        Log.i(TAG, "LorieView added to placeholder")
+
+        // Start X server only after the Surface is actually created/changed.
+        lorieView!!.holder.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                Log.i(TAG, "LorieView surfaceCreated")
+            }
+
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                Log.i(TAG, "LorieView surfaceChanged ${width}x${height}")
+                synchronized(this@DesktopActivity) {
+                    if (!connectionRequested && !LorieView.connected()) {
+                        connectionRequested = true
+                        connectToX11Service()
+                    }
+                }
+            }
+
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                Log.i(TAG, "LorieView surfaceDestroyed")
+            }
+        })
     }
 
-    private fun startNativeX11() {
-        if (isX11Started || LorieView.connected()) {
+    private fun connectToX11Service() {
+        if (LorieView.connected()) {
             lorieView?.requestFocus()
             return
         }
-        isX11Started = true
 
-        Thread {
+        x11ServiceClient = X11ServiceClient(
+            context = this,
+            onConnected = { connectionFd, logcatFd ->
+                try {
+                    LorieView.connect(connectionFd.detachFd())
+                    logcatFd?.let { LorieView.startLogcat(it.detachFd()) }
+                    Log.i(TAG, "LorieView connected to the :x11 service process")
+
+                    inputController = X11InputController(lorieView!!)
+                    addInputModeButton()
+                    lorieView?.requestFocus()
+                    startDesktopSessionIfRequested()
+                } catch (error: Throwable) {
+                    connectionFd.close()
+                    logcatFd?.close()
+                    showX11Error("Failed to attach LorieView to the X11 service", error)
+                }
+            },
+            onError = ::showX11Error,
+        ).also { it.connect() }
+    }
+
+    private fun addInputModeButton() {
+        if (inputModeButton != null) return
+        val density = resources.displayMetrics.density
+        inputModeButton = Button(this).apply {
+            isAllCaps = false
+            minWidth = 0
+            minHeight = 0
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            backgroundTintList = ColorStateList.valueOf(Color.argb(220, 28, 38, 52))
+            elevation = 6 * density
+            text = inputController?.modeLabel() ?: "Trackpad"
+            setOnClickListener {
+                inputController?.nextMode()
+                text = inputController?.modeLabel() ?: "Trackpad"
+                Toast.makeText(this@DesktopActivity, "Input mode: $text", Toast.LENGTH_SHORT).show()
+            }
+        }.also { button ->
+            val params = FrameLayout.LayoutParams(
+                (116 * density).toInt(),
+                (40 * density).toInt(),
+                Gravity.TOP or Gravity.END,
+            ).apply {
+                topMargin = (52 * density).toInt()
+                marginEnd = (8 * density).toInt()
+            }
+            placeholder.addView(button, params)
+            button.bringToFront()
+        }
+    }
+
+    private fun startDesktopSessionIfRequested() {
+        if (!shouldStartSession) return
+        shouldStartSession = false
+        Thread({
+            Log.i(TAG, "Starting Linux desktop session after X server connection")
             try {
-                val tmpDir = File(filesDir, "tmp")
-                tmpDir.mkdirs()
-
-                val x11Dir = File(tmpDir, ".X11-unix")
-                x11Dir.mkdirs()
-
-                Os.setenv("TMPDIR", tmpDir.absolutePath, true)
-                Os.setenv("PREFIX", "", true)
-                Os.setenv("HOME", filesDir.absolutePath, true)
-
-                val xkbRoot = File(filesDir, "rootfs/usr/share/X11/xkb")
-                if (xkbRoot.exists()) {
-                    Os.setenv("XKB_CONFIG_ROOT", xkbRoot.absolutePath, true)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to set environment", e)
-            }
-
-            Log.i(TAG, "Starting X server with :0 -nolock")
-
-            Looper.prepare()
-
-            val success = CmdEntryPoint.start(arrayOf(":0", "-nolock"))
-            Log.i(TAG, "X server start returned: $success")
-
-            if (success) {
-                val cmdEntryPoint = CmdEntryPoint()
-                val fd = cmdEntryPoint.xConnection
-                val logcatFd = cmdEntryPoint.logcatOutput
-
-                // Prevent X server from deadlocking by consuming its log output pipe!
-                if (logcatFd != null) {
-                    Thread {
-                        try {
-                            val reader = java.io.BufferedReader(java.io.InputStreamReader(java.io.FileInputStream(logcatFd.fileDescriptor)))
-                            while (true) {
-                                val line = reader.readLine() ?: break
-                                Log.d("Xlorie-Internal", line)
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error reading X server logs", e)
-                        }
-                    }.start()
-                }
-
-                if (fd != null) {
-                    // Only the UI callbacks and JNI calls that expect the main thread's JNIEnv
-                    // can be posted to the main thread.
-                    Handler(Looper.getMainLooper()).post {
-                        try {
-                            LorieView.connect(fd.detachFd())
-                            Log.i(TAG, "LorieView connected on main thread!")
-                            
-                            lorieView?.triggerCallback()
-                            lorieView?.requestFocus()
-                            Log.i(TAG, "LorieView focused!")
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to connect LorieView", e)
-                        }
-                    }
+                if (sessionMode == "chroot") {
+                    chrootRuntime.startSession(desktopEnv)
                 } else {
-                    Log.e(TAG, "getXConnection returned null")
+                    linuxRuntime.startSession(desktopEnv, "x11")
                 }
-
-                Looper.loop()
+            } catch (error: Throwable) {
+                Log.e(TAG, "Desktop session failed", error)
             }
-        }.start()
+        }, "LinuxDesktopSession").start()
+    }
+
+    private fun showX11Error(message: String, error: Throwable?) {
+        Log.e(TAG, message, error)
+        Toast.makeText(this, "X11 Error: $message", Toast.LENGTH_LONG).show()
     }
 
     override fun onDestroy() {
+        inputController?.dispose()
+        inputController = null
+        x11ServiceClient?.disconnect()
+        x11ServiceClient = null
         super.onDestroy()
     }
 }
