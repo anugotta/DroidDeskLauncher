@@ -33,6 +33,7 @@ import com.termux.x11.LorieView
 import com.orailnoor.droiddesk.MainActivity
 import com.orailnoor.droiddesk.runtime.LinuxRuntime
 import com.orailnoor.droiddesk.runtime.ChrootRuntime
+import com.orailnoor.droiddesk.runtime.XfceMobileProfile
 import com.orailnoor.droiddesk.service.DroidDeskService
 import com.orailnoor.droiddesk.x11.X11ServiceClient
 import com.orailnoor.droiddesk.x11.X11InputController
@@ -195,12 +196,16 @@ class DesktopActivity : Activity() {
             applySafeAreaInsets()
             refreshX11Viewport("post-layout-delayed")
             resizeLinuxWindowsToFit()
-        }, 350)
+        }, 400)
         desktopSurface.postDelayed({
             if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
             refreshX11Viewport("post-layout-settle")
             resizeLinuxWindowsToFit()
-        }, 900)
+        }, 1000)
+        desktopSurface.postDelayed({
+            if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
+            resizeLinuxWindowsToFit()
+        }, 1800)
     }
 
     private fun refreshX11Viewport(reason: String) {
@@ -213,6 +218,8 @@ class DesktopActivity : Activity() {
             return
         }
         try {
+            // Force measure → updateViewport → sendWindowChange with new geometry.
+            view.requestLayout()
             view.triggerCallback()
         } catch (error: Throwable) {
             Log.w(TAG, "triggerCallback failed ($reason)", error)
@@ -222,38 +229,22 @@ class DesktopActivity : Activity() {
     private fun resizeLinuxWindowsToFit() {
         if (!isSessionRunning()) return
         Thread({
-            // Do NOT run `xfce4-panel -r` — on this Termux/X11 stack it fails with
-            // GDBus ServiceUnknown and pops modal error dialogs on rotate.
+            // Do NOT run `xfce4-panel -r` — it triggers GDBus panel dialogs.
             val script = """
                 export DISPLAY=:0
-                sleep 0.35
-                # Prefer wmctrl maximize so windows follow the new root size.
-                if command -v wmctrl >/dev/null 2>&1; then
-                  wmctrl -l 2>/dev/null | awk '{print ${'$'}1}' | while read -r id; do
-                    [ -n "${'$'}id" ] || continue
-                    # Skip desktop/panel windows if wmctrl lists them.
-                    wmctrl -i -r "${'$'}id" -b add,maximized_vert,maximized_horz >/dev/null 2>&1 || true
-                  done
-                  exit 0
-                fi
-                # Fallback: move/resize visible clients to the current X screen.
-                if command -v xdotool >/dev/null 2>&1 && command -v xdpyinfo >/dev/null 2>&1; then
-                  dim=${'$'}(xdpyinfo 2>/dev/null | awk '/dimensions/{print ${'$'}2}')
-                  w=${'$'}{dim%x*}
-                  h=${'$'}{dim#*x}
-                  if [ -n "${'$'}w" ] && [ -n "${'$'}h" ] && [ "${'$'}w" -gt 0 ] && [ "${'$'}h" -gt 0 ]; then
-                    xdotool search --onlyvisible --name '' 2>/dev/null | while read -r id; do
-                      xdotool windowmove "${'$'}id" 0 0 >/dev/null 2>&1 || true
-                      xdotool windowsize "${'$'}id" "${'$'}w" "${'$'}h" >/dev/null 2>&1 || true
-                    done
-                  fi
-                fi
+                export PATH="${'$'}HOME/.local/bin:${'$'}PREFIX/bin:/usr/bin:/bin:${'$'}PATH"
+                ${XfceMobileProfile.fitWindowsScript()}
             """.trimIndent()
             try {
-                if (sessionMode == "chroot") {
+                val result = if (sessionMode == "chroot") {
                     chrootRuntime.executeCommand(script)
                 } else {
-                    linuxRuntime.executeCommand(script)
+                    linuxRuntime.executeDetached(script)
+                }
+                if (result.startsWith("Error:")) {
+                    Log.w(TAG, "resizeLinuxWindowsToFit: $result")
+                } else {
+                    Log.i(TAG, "resizeLinuxWindowsToFit finished")
                 }
             } catch (error: Throwable) {
                 Log.w(TAG, "resizeLinuxWindowsToFit failed", error)

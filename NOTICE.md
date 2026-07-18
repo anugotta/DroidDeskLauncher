@@ -26,6 +26,10 @@ This repository (`DroidDeskLauncher`) extends DroidDesk with:
 - phone-oriented XFCE layout and floating desktop controls
 - session start and rotate handling improvements for on-device use
 
+Bundled desktop wallpapers under `app/android/app/src/main/assets/droiddesk/wallpapers/`
+are from [Unsplash](https://unsplash.com) under the
+[Unsplash License](https://unsplash.com/license). See that folder’s `CREDITS.txt`.
+
 Product branding remains DroidDesk. Screenshots in `docs/screenshots/` were
 captured from a development device running this fork.
 

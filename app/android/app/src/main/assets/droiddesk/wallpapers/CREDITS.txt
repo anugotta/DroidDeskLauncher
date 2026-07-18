@@ -1,0 +1,15 @@
+# Desktop wallpapers
+
+Bundled images are from [Unsplash](https://unsplash.com) under the
+[Unsplash License](https://unsplash.com/license).
+
+| File | Unsplash photo |
+|------|----------------|
+| `mountains.jpg` | https://unsplash.com/photos/photo-1506905925346-21bda4d32df4 |
+| `ocean.jpg` | https://unsplash.com/photos/photo-1507525428034-b723cf961d3e |
+| `forest.jpg` | https://unsplash.com/photos/photo-1441974231531-c6227db76b6e |
+| `city-night.jpg` | https://unsplash.com/photos/photo-1514565131-fce0801e5785 |
+| `valley.jpg` | https://unsplash.com/photos/photo-1469474968028-56623f02e42e |
+
+Photographers retain copyright; see each Unsplash photo page for attribution names.
+`ubuntu-touch.jpg` is the original DroidDesk default wallpaper.

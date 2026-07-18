@@ -1335,7 +1335,7 @@ class LinuxRuntime(private val context: Context) {
             "lxqt" -> "lxqt qterminal pcmanfm-qt featherpad"
             "mate" -> "mate mate-terminal"
             "kde" -> "plasma-desktop konsole dolphin"
-            else -> "xfce4 xfce4-terminal xfce4-whiskermenu-plugin xfce4-notifyd thunar mousepad wmctrl"
+            else -> "xfce4 xfce4-terminal xfce4-whiskermenu-plugin xfce4-notifyd thunar mousepad wmctrl xdotool"
         }
         if (!installPackageGroup("pkg install -y $desktopPackages")) {
             Log.e(TAG, "$selectedDesktop package install failed")
@@ -1461,12 +1461,15 @@ class LinuxRuntime(private val context: Context) {
             XfceMobileProfile.install(
                 context = context,
                 homeDir = homeDir.apply { mkdirs() },
-                wallpaperFile = File(
+                wallpaperDir = File(
                     homeDir,
-                    ".local/share/backgrounds/droiddesk-ubuntu-touch.jpg",
+                    ".local/share/backgrounds/droiddesk",
                 ),
                 binDir = binDir,
             )
+            // Always refresh the rotate/fit helper, even when the profile marker
+            // already exists from an earlier version.
+            XfceMobileProfile.ensureFitWindowsHelper(homeDir, binDir)
         }
 
         // X11ServerService owns this socket. Never delete it from the client runtime.
@@ -1633,6 +1636,41 @@ class LinuxRuntime(private val context: Context) {
     }
 
     // ── Command Execution ──
+
+    /**
+     * Always spawn a fresh shell. Unlike [executeCommand], this never routes into
+     * an interactive [activeCommandProcess] (which would break rotate/fit scripts).
+     */
+    fun executeDetached(command: String): String {
+        if (!isBootstrapped()) return "Error: Runtime not bootstrapped"
+        compileSocketHook()
+        val bashBin = File(prefixDir, "bin/bash").absolutePath
+        return try {
+            val process = ProcessBuilder(listOf(bashBin, "-c", command))
+                .directory(prefixDir)
+                .redirectErrorStream(true)
+                .also { pb ->
+                    pb.environment().clear()
+                    pb.environment().putAll(getTermuxEnv())
+                }
+                .start()
+            val output = StringBuilder()
+            process.inputStream.bufferedReader().use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    output.appendLine(line)
+                }
+            }
+            val code = process.waitFor()
+            if (code != 0) {
+                Log.w(TAG, "Detached command exit=$code: ${output.take(400)}")
+            }
+            output.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Detached command failed: ${e.message}")
+            "Error: ${e.message}"
+        }
+    }
 
     fun executeCommand(command: String, onOutput: ((String) -> Unit)? = null): String {
         activeCommandProcess?.let { process ->

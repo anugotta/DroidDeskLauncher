@@ -309,16 +309,17 @@ class ChrootRuntime(private val context: Context) {
         }
 
         if (desktopEnv == "xfce4") {
+            val homeDir = File(rootfsDir, "root")
             XfceMobileProfile.install(
                 context = context,
-                homeDir = File(rootfsDir, "root"),
-                wallpaperFile = File(
+                homeDir = homeDir,
+                wallpaperDir = File(
                     rootfsDir,
-                    "usr/share/backgrounds/droiddesk/ubuntu-touch.jpg",
+                    "usr/share/backgrounds/droiddesk",
                 ),
-                wallpaperPathInSession =
-                    "/usr/share/backgrounds/droiddesk/ubuntu-touch.jpg",
+                wallpaperPathPrefixInSession = "/usr/share/backgrounds/droiddesk",
             )
+            XfceMobileProfile.ensureFitWindowsHelper(homeDir)
         }
 
         ensureMounts()

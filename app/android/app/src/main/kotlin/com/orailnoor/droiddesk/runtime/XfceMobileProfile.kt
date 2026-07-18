@@ -14,24 +14,24 @@ import java.io.File
  */
 object XfceMobileProfile {
     private const val TAG = "XfceMobileProfile"
-    private const val PROFILE_MARKER = ".droiddesk-xfce-mobile-v13"
+    private const val PROFILE_MARKER = ".droiddesk-xfce-mobile-v14"
     private const val WALLPAPER_ASSET = "droiddesk/ubuntu-touch-wallpaper.jpg"
+    private const val WALLPAPER_DIR_ASSET = "droiddesk/wallpapers"
 
     fun install(
         context: Context,
         homeDir: File,
-        wallpaperFile: File,
-        wallpaperPathInSession: String = wallpaperFile.absolutePath,
+        wallpaperDir: File,
+        wallpaperPathPrefixInSession: String = wallpaperDir.absolutePath,
         binDir: File? = null,
     ): Boolean {
         val marker = File(homeDir, PROFILE_MARKER)
         if (marker.exists()) return true
 
         return try {
-            wallpaperFile.parentFile?.mkdirs()
-            context.assets.open(WALLPAPER_ASSET).use { input ->
-                wallpaperFile.outputStream().use(input::copyTo)
-            }
+            val defaultWallpaper = installWallpapers(context, wallpaperDir)
+            val defaultPathInSession =
+                "$wallpaperPathPrefixInSession/${defaultWallpaper.name}"
 
             val xfconfDir = File(
                 homeDir,
@@ -39,13 +39,14 @@ object XfceMobileProfile {
             ).apply { mkdirs() }
             File(xfconfDir, "xfce4-panel.xml").writeText(panelConfig())
             File(xfconfDir, "xfce4-desktop.xml").writeText(
-                desktopConfig(xmlEscape(wallpaperPathInSession)),
+                desktopConfig(xmlEscape(defaultPathInSession)),
             )
             File(xfconfDir, "xsettings.xml").writeText(xsettingsConfig())
             File(xfconfDir, "xfwm4.xml").writeText(xfwm4Config())
 
             installPanelCss(homeDir)
             installGtkSettings(homeDir)
+            ensureFitWindowsHelper(homeDir, binDir)
             cleanupAndroidAppsArtifacts(homeDir, binDir)
 
             val panelDir = File(homeDir, ".config/xfce4/panel")
@@ -77,13 +78,94 @@ object XfceMobileProfile {
                     file.name != PROFILE_MARKER
             }?.forEach { it.delete() }
             marker.writeText("1\n")
-            Log.i(TAG, "Installed XFCE mobile profile v13 in ${homeDir.absolutePath}")
+            Log.i(TAG, "Installed XFCE mobile profile v14 in ${homeDir.absolutePath}")
             true
         } catch (error: Exception) {
             Log.e(TAG, "Failed to install XFCE mobile profile — leaving previous config intact", error)
             false
         }
     }
+
+    private fun installWallpapers(context: Context, wallpaperDir: File): File {
+        wallpaperDir.mkdirs()
+        context.assets.open(WALLPAPER_ASSET).use { input ->
+            File(wallpaperDir, "ubuntu-touch.jpg").outputStream().use(input::copyTo)
+        }
+        context.assets.list(WALLPAPER_DIR_ASSET)?.forEach { name ->
+            if (!name.endsWith(".jpg", ignoreCase = true) &&
+                !name.equals("CREDITS.txt", ignoreCase = true)
+            ) {
+                return@forEach
+            }
+            context.assets.open("$WALLPAPER_DIR_ASSET/$name").use { input ->
+                File(wallpaperDir, name).outputStream().use(input::copyTo)
+            }
+        }
+        // Prefer a fresh Unsplash default; fall back to the classic image.
+        return sequenceOf("mountains.jpg", "ocean.jpg", "ubuntu-touch.jpg")
+            .map { File(wallpaperDir, it) }
+            .firstOrNull { it.exists() }
+            ?: File(wallpaperDir, "ubuntu-touch.jpg")
+    }
+
+    /** Shell helper used after rotate / X root resize to fit client windows. */
+    fun ensureFitWindowsHelper(homeDir: File, binDir: File? = null) {
+        val script = fitWindowsScript()
+        val localBin = File(homeDir, ".local/bin").apply { mkdirs() }
+        File(localBin, "droiddesk-fit-windows").writeText(script)
+        File(localBin, "droiddesk-fit-windows").setExecutable(true, false)
+        binDir?.let {
+            it.mkdirs()
+            File(it, "droiddesk-fit-windows").writeText(script)
+            File(it, "droiddesk-fit-windows").setExecutable(true, false)
+        }
+    }
+
+    fun fitWindowsScript(): String = """
+        #!/bin/sh
+        # Fit visible XFCE/app windows to the current X screen size.
+        export DISPLAY="${'$'}{DISPLAY:-:0}"
+        dim=""
+        i=0
+        while [ "${'$'}i" -lt 12 ]; do
+          dim=${'$'}(xdpyinfo 2>/dev/null | awk '/dimensions/{print ${'$'}2; exit}')
+          if [ -n "${'$'}dim" ]; then
+            break
+          fi
+          i=${'$'}((i + 1))
+          sleep 0.15
+        done
+        [ -n "${'$'}dim" ] || exit 0
+        w=${'$'}{dim%x*}
+        h=${'$'}{dim#*x}
+        case "${'$'}w" in (*[!0-9]*|"") exit 0 ;; esac
+        case "${'$'}h" in (*[!0-9]*|"") exit 0 ;; esac
+        [ "${'$'}w" -gt 0 ] && [ "${'$'}h" -gt 0 ] || exit 0
+
+        if command -v wmctrl >/dev/null 2>&1; then
+          wmctrl -lx 2>/dev/null | while read -r id _ class _; do
+            [ -n "${'$'}id" ] || continue
+            case "${'$'}class" in
+              *xfce4-panel*|*Xfce4-panel*|*xfdesktop*|*Xfdesktop*|*wrapper-2.0*|*Wrapper*|*polybar*|*plank*)
+                continue
+                ;;
+            esac
+            # Force a rematch against the new root: unmaximize → size → maximize.
+            wmctrl -i -r "${'$'}id" -b remove,fullscreen,maximized_vert,maximized_horz >/dev/null 2>&1 || true
+            wmctrl -i -r "${'$'}id" -e "0,0,0,${'$'}w,${'$'}h" >/dev/null 2>&1 || true
+            wmctrl -i -r "${'$'}id" -b add,maximized_vert,maximized_horz >/dev/null 2>&1 || true
+          done
+          exit 0
+        fi
+
+        if command -v xdotool >/dev/null 2>&1; then
+          xdotool search --onlyvisible --name '' 2>/dev/null | while read -r id; do
+            [ -n "${'$'}id" ] || continue
+            xdotool windowmove "${'$'}id" 0 0 >/dev/null 2>&1 || true
+            xdotool windowsize "${'$'}id" "${'$'}w" "${'$'}h" >/dev/null 2>&1 || true
+          done
+        fi
+    """.trimIndent() + "\n"
 
     private fun cleanupAndroidAppsArtifacts(homeDir: File, binDir: File?) {
         File(homeDir, ".local/share/applications/droiddesk-android-apps.desktop").delete()
@@ -360,6 +442,11 @@ object XfceMobileProfile {
             <property name="focus_delay" type="int" value="0"/>
             <property name="double_click_distance" type="int" value="10"/>
             <property name="double_click_time" type="int" value="400"/>
+            <property name="tile_on_move" type="bool" value="true"/>
+            <property name="margin_top" type="int" value="0"/>
+            <property name="margin_bottom" type="int" value="0"/>
+            <property name="margin_left" type="int" value="0"/>
+            <property name="margin_right" type="int" value="0"/>
           </property>
         </channel>
     """.trimIndent() + "\n"
