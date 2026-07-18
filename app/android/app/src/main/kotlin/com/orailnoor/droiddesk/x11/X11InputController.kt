@@ -71,6 +71,8 @@ class X11InputController(private val lorieView: LorieView) {
                 displayScale.put(DISPLAY_SCALE_PERCENT)
                 displayStretch.put(true)
                 scaleTouchpad.put(true)
+                // Swap X dimensions when the phone rotates so the desktop matches.
+                adjustResolution.put(true)
             }
         }
     }

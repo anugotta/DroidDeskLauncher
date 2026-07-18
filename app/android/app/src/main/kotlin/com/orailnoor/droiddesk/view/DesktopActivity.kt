@@ -3,6 +3,7 @@ package com.orailnoor.droiddesk.view
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.graphics.Color
@@ -53,6 +54,9 @@ class DesktopActivity : Activity() {
     private var collapsedControl: Button? = null
     private var surfaceCallback: SurfaceHolder.Callback? = null
     private var x11RetryUsed = false
+    private var lastSurfaceW = 0
+    private var lastSurfaceH = 0
+    private var geometryChangeGeneration = 0
 
     companion object {
         private const val TAG = "DesktopActivity"
@@ -146,11 +150,108 @@ class DesktopActivity : Activity() {
         ensureLorieSetup("onResume")
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        Log.i(
+            TAG,
+            "onConfigurationChanged orientation=${newConfig.orientation} " +
+                "size=${newConfig.screenWidthDp}x${newConfig.screenHeightDp}",
+        )
+        handleDisplayGeometryChange("configuration-changed")
+    }
+
     private fun ensureLorieSetup(reason: String) {
         if (isSetupDone || isFinishing) return
         isSetupDone = true
         Log.i(TAG, "Setting up LorieView ($reason)")
         setupLorieView()
+    }
+
+    /**
+     * Portrait/landscape (and foldable/size) changes: re-apply the black safe
+     * border, force LorieView to publish a new X11 root size, then best-effort
+     * maximize XFCE windows so they follow the new bounds.
+     */
+    private fun handleDisplayGeometryChange(reason: String) {
+        if (!isSetupDone || isFinishing) return
+        val generation = ++geometryChangeGeneration
+        Log.i(TAG, "Handling display geometry change ($reason) gen=$generation")
+        enableImmersiveMode()
+        applySafeAreaInsets()
+        desktopSurface.requestLayout()
+        lorieView?.requestLayout()
+        placeholder.requestLayout()
+
+        // Layout → surface size update can take a frame or two after rotate.
+        desktopSurface.post {
+            if (generation != geometryChangeGeneration || isFinishing) return@post
+            applySafeAreaInsets()
+            refreshX11Viewport("post-layout")
+        }
+        desktopSurface.postDelayed({
+            if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
+            applySafeAreaInsets()
+            refreshX11Viewport("post-layout-delayed")
+            resizeLinuxWindowsToFit()
+        }, 350)
+        desktopSurface.postDelayed({
+            if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
+            refreshX11Viewport("post-layout-settle")
+            resizeLinuxWindowsToFit()
+        }, 900)
+    }
+
+    private fun refreshX11Viewport(reason: String) {
+        val view = lorieView ?: return
+        val w = view.width
+        val h = view.height
+        Log.i(TAG, "refreshX11Viewport ($reason) view=${w}x${h} connected=${LorieView.connected()}")
+        if (w <= 0 || h <= 0) {
+            view.requestLayout()
+            return
+        }
+        try {
+            view.triggerCallback()
+        } catch (error: Throwable) {
+            Log.w(TAG, "triggerCallback failed ($reason)", error)
+        }
+    }
+
+    private fun resizeLinuxWindowsToFit() {
+        if (!isSessionRunning()) return
+        Thread({
+            val script = """
+                export DISPLAY=:0
+                # Let the X server finish applying the new root size first.
+                sleep 0.25
+                xfce4-panel -r >/dev/null 2>&1 || true
+                if command -v wmctrl >/dev/null 2>&1; then
+                  wmctrl -l 2>/dev/null | awk '{print ${'$'}1}' | while read -r id; do
+                    [ -n "${'$'}id" ] || continue
+                    wmctrl -i -r "${'$'}id" -b add,maximized_vert,maximized_horz >/dev/null 2>&1 || true
+                  done
+                elif command -v xdotool >/dev/null 2>&1 && command -v xdpyinfo >/dev/null 2>&1; then
+                  dim=${'$'}(xdpyinfo 2>/dev/null | awk '/dimensions/{print ${'$'}2}')
+                  w=${'$'}{dim%x*}
+                  h=${'$'}{dim#*x}
+                  if [ -n "${'$'}w" ] && [ -n "${'$'}h" ] && [ "${'$'}w" -gt 0 ] && [ "${'$'}h" -gt 0 ]; then
+                    xdotool search --onlyvisible --name '' 2>/dev/null | while read -r id; do
+                      xdotool windowmove "${'$'}id" 0 0 >/dev/null 2>&1 || true
+                      xdotool windowsize "${'$'}id" "${'$'}w" "${'$'}h" >/dev/null 2>&1 || true
+                    done
+                  fi
+                fi
+            """.trimIndent()
+            try {
+                if (sessionMode == "chroot") {
+                    chrootRuntime.executeCommand(script)
+                } else {
+                    linuxRuntime.executeCommand(script)
+                }
+            } catch (error: Throwable) {
+                Log.w(TAG, "resizeLinuxWindowsToFit failed", error)
+            }
+        }, "ResizeLinuxWindows").start()
     }
 
     @Deprecated("Deprecated in Java")
@@ -247,10 +348,17 @@ class DesktopActivity : Activity() {
                 override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
                     Log.i(TAG, "LorieView surfaceChanged ${width}x${height}")
                     if (width <= 0 || height <= 0) return
+                    val sizeChanged = width != lastSurfaceW || height != lastSurfaceH
+                    lastSurfaceW = width
+                    lastSurfaceH = height
                     synchronized(this@DesktopActivity) {
                         if (!connectionRequested) {
                             connectionRequested = true
                             connectToX11Service()
+                        } else if (sizeChanged && LorieView.connected()) {
+                            // Rotate / resize after the first connect.
+                            refreshX11Viewport("surfaceChanged")
+                            resizeLinuxWindowsToFit()
                         }
                     }
                 }
