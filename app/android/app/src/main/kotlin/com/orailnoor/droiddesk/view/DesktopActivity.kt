@@ -3,6 +3,8 @@ package com.orailnoor.droiddesk.view
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -449,10 +451,10 @@ class DesktopActivity : Activity() {
         val keyboardButton = controlButton("Keyboard").apply {
             setOnClickListener { showKeyboard() }
         }
-        inputModeButton = controlButton(inputController?.modeLabel() ?: "Direct touch").apply {
+        inputModeButton = controlButton(inputController?.modeLabel() ?: "Trackpad").apply {
             setOnClickListener {
                 inputController?.nextMode()
-                text = inputController?.modeLabel() ?: "Direct touch"
+                text = inputController?.modeLabel() ?: "Trackpad"
                 Toast.makeText(this@DesktopActivity, "Input mode: $text", Toast.LENGTH_SHORT).show()
             }
         }
@@ -464,8 +466,12 @@ class DesktopActivity : Activity() {
             }
         }
         val androidButton = controlButton("Android").apply {
-            contentDescription = "Change default home app"
-            setOnClickListener { openHomeSettings() }
+            contentDescription = "Open Android home screen"
+            setOnClickListener { openAndroidHome() }
+            setOnLongClickListener {
+                openHomeSettings()
+                true
+            }
         }
         val hideButton = controlButton("−").apply {
             contentDescription = "Hide desktop controls"
@@ -533,6 +539,55 @@ class DesktopActivity : Activity() {
                 addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             },
         )
+    }
+
+    /**
+     * Leave the Linux desktop for the phone's stock Android home.
+     * A plain CATEGORY_HOME intent would bounce back here while we are the
+     * default launcher, so we start another HOME activity explicitly.
+     */
+    private fun openAndroidHome() {
+        val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PackageManager.MATCH_ALL
+        } else {
+            0
+        }
+        val others = packageManager.queryIntentActivities(homeIntent, flags)
+            .mapNotNull { it.activityInfo }
+            .filter { it.packageName != packageName && it.exported }
+            .sortedByDescending { info ->
+                val system = (info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                if (system) 1 else 0
+            }
+
+        val target = others.firstOrNull()
+        if (target == null) {
+            Toast.makeText(
+                this,
+                "No other Android home app found — long-press Android to change default",
+                Toast.LENGTH_LONG,
+            ).show()
+            openHomeSettings()
+            return
+        }
+
+        try {
+            startActivity(
+                Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_HOME)
+                    setClassName(target.packageName, target.name)
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
+                    )
+                },
+            )
+        } catch (error: Throwable) {
+            Log.e(TAG, "Failed to open Android home ${target.packageName}/${target.name}", error)
+            Toast.makeText(this, "Could not open Android home", Toast.LENGTH_SHORT).show()
+            openHomeSettings()
+        }
     }
 
     private fun openHomeSettings() {

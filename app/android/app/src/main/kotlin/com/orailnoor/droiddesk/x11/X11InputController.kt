@@ -14,7 +14,7 @@ class X11InputController(private val lorieView: LorieView) {
         InputEventSender(lorieView),
     )
 
-    var mode: Int = TouchInputHandler.InputMode.TOUCH
+    var mode: Int = TouchInputHandler.InputMode.TRACKPAD
         private set
 
     init {
@@ -73,6 +73,8 @@ class X11InputController(private val lorieView: LorieView) {
                 scaleTouchpad.put(true)
                 // Swap X dimensions when the phone rotates so the desktop matches.
                 adjustResolution.put(true)
+                // Phone default: trackpad gestures (tap = click, scroll, right-click).
+                touchMode.put(TouchInputHandler.InputMode.TRACKPAD.toString())
             }
         }
     }

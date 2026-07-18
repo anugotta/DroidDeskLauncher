@@ -69,3 +69,22 @@ If you compile or install VLC manually, you can bypass the root check by patchin
 ```bash
 sed -i 's/geteuid/getppid/g' /path/to/your/vlc/binary
 ```
+
+## Home launcher / phone desktop (DroidDeskLauncher)
+
+### Black screen on boot or Home
+
+1. Open DroidDesk from the **app drawer** (not only Home) and use **Stop Server**, then **Launch Desktop** again.
+2. Set battery usage for DroidDesk to **Unrestricted** (Samsung: Settings → Apps → DroidDesk → Battery).
+3. Disable **child process** restrictions in Developer Options if your ROM kills background processes.
+4. If setup never finished, Home correctly opens the Flutter dashboard — complete setup first.
+
+### Floating bar: Android vs Dashboard
+
+- **Dashboard** → Flutter UI (return to desktop, stop server, settings).
+- **Android** → stock Android home (One UI / other launcher). Long-press opens the default-home picker.
+- A plain system Home press while DroidDesk is the default launcher returns to the Linux desktop by design.
+
+### Soft keyboard
+
+X11 cannot reliably detect “text field focused.” Use the floating **Keyboard** button (or keep a BT keyboard connected).

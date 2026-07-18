@@ -1,10 +1,8 @@
 # DroidDesk Launcher
 
-Run a full Linux desktop on any Android phone. Not a terminal. Not an emulator. A complete desktop environment with direct kernel access -- VS Code, Blender, Metasploit, local AI, all of it.
+Full Linux desktop on ARM64 Android — not a terminal app, not an emulator. Native kernel access, embedded X11, and an optional **Android home launcher** so boot and Home open the desktop directly.
 
-Connect your phone to a monitor and it becomes a Linux PC. Unplug it and your entire setup comes with you.
-
-**This repository** (`DroidDeskLauncher`) adds an optional **Android home launcher** mode so boot and the Home button can open the Linux desktop directly, with a Flutter setup/dashboard fallback.
+This repository (`DroidDeskLauncher`) builds on [upstream DroidDesk](https://github.com/orailnoor/DroidDesk) with phone-first UX: home routing, a touch-oriented XFCE layout, floating controls, and safer session start.
 
 > [!IMPORTANT]
 > DroidDesk is an independent GPL-3.0 open-source project that incorporates
@@ -15,251 +13,166 @@ Connect your phone to a monitor and it becomes a Linux PC. Unplug it and your en
 > - **Upstream project:** <https://github.com/orailnoor/DroidDesk>
 > - **Termux:X11 upstream:** <https://github.com/termux/termux-x11>
 
-## Video
+## Screenshots
 
-[![Watch the video](https://img.youtube.com/vi/QCr4WWsfVv8/maxresdefault.jpg)](https://youtu.be/QCr4WWsfVv8)
+<p align="center">
+  <img src="docs/screenshots/01-linux-desktop.png" alt="Linux XFCE desktop in landscape with floating controls" width="100%"/>
+  <br/>
+  <em>Linux desktop (XFCE) in landscape — bottom dock, floating bar, trackpad mode</em>
+</p>
 
-## What This Actually Runs
+<p align="center">
+  <img src="docs/screenshots/04-linux-desktop-portrait.png" alt="Linux desktop in portrait" width="36%"/>
+  &nbsp;
+  <img src="docs/screenshots/02-flutter-dashboard.png" alt="Flutter dashboard" width="36%"/>
+  <br/>
+  <em>Portrait desktop · Flutter dashboard (return, stop, set as default launcher)</em>
+</p>
 
-Everything below has been tested and confirmed working:
+## What’s new in this fork
 
-- **LibreOffice** -- Word processing, spreadsheets, presentations. Fully functional.
-- **VS Code** -- Full version. Python, PIP, extensions, everything.
-- **Claude Code** -- AI coding agent running directly in terminal.
-- **Blender** -- Installs and opens. Laggy on mobile hardware, but it runs.
-- **Wireshark** -- Full network analysis, every packet and protocol.
-- **Metasploit** -- Pentesting framework, runs fine.
-- **Local AI** -- Offline LLM inference, 5+ tokens/second, no API needed.
+Compared with the original DroidDesk app experience, this launcher fork focuses on **using Linux as a phone home screen** and fixing rough edges on real devices (tested on Samsung Galaxy A70 / One UI).
 
-If it runs on Ubuntu, it runs here.
+### Home launcher mode
 
-## How It Works
+| Behavior | Detail |
+|----------|--------|
+| Boot / Home | Routes to the Linux desktop when setup is complete |
+| Incomplete setup / failure | Falls back to the Flutter dashboard with a clear error path |
+| Overlay **Dashboard** | Returns to Flutter (apps, terminal, settings, stop server) |
+| Overlay **Android** | Leaves Linux for the **stock Android home** (not just settings) |
+| Long-press **Android** / **Dashboard** | Opens the system default-home / role picker |
 
-The Linux environment runs through Termux with direct access to the phone's kernel. No emulation, no translation -- native performance.
+Set DroidDesk as the default home app from the dashboard (**Set as Default Launcher**). For casual use, leave the stock launcher as default and open DroidDesk from the app drawer.
 
-The setup script installs a full desktop (XFCE4/LXQt/MATE/KDE) inside Termux using the Termux User Repository (TUR) for GUI apps. For tools not available in TUR (Wireshark, Metasploit, etc.), a Proot container provides a standard Ubuntu/Debian/Kali environment where you install anything with `apt`.
+### Phone desktop UX
 
-The automatic menu sync scans what you install inside Proot and adds it directly to your desktop app menu. No need to enter the container every time.
+- **Bottom dock** — Applications menu, Terminal, Files, Browser (avoids icons hiding under a side panel)
+- **Top tasklist + clock** — Window list and readable clock on the dark panel
+- **Safe-area letterboxing** — Black borders so rounded corners / notches don’t clip the desktop
+- **Orientation** — Desktop resizes on rotate without breaking the XFCE panel
+- **Direct touch / Trackpad / Touchscreen** — Floating bar cycles modes; **Trackpad is the default**
+- **Soft keyboard** — Floating **Keyboard** button (true text-field auto-IME isn’t available over X11)
 
-## DroidDesk App (Standalone)
+### Launch reliability
 
-DroidDesk is also available as a standalone Android application that completely automates this process without requiring a separate Termux installation. It renders through an embedded Termux:X11 server running in its own Android process; the app does not use VNC.
-
-- **Rooted phones:** Run the Ubuntu filesystem through `chroot`.
-- **Non-rooted phones:** Run an app-private native Termux userspace and install desktop packages from the X11 and TUR repositories. PRoot is not used for the main desktop path.
-- **Rendering:** Both modes connect directly to the embedded X11 server on `DISPLAY=:0`. Adreno devices use Turnip/Zink hardware acceleration when available; other GPUs fall back to Mesa software rendering.
-- **Automated setup:** The app extracts the bundled ARM64 Termux bootstrap, configures its private package prefix, and installs the selected desktop automatically.
-
-Download the latest release APK from the Releases tab and sideload it to begin.
-
-### Home launcher mode (optional)
-
-After setup, you can set DroidDesk as the **default Android home app**:
-
-1. Complete the in-app setup wizard (or open DroidDesk from the app drawer).
-2. On the dashboard, choose **Set as Default Launcher** (or accept the one-time prompt after setup).
-3. Confirm DroidDesk in the system home-app picker.
-
-Then:
-
-| Action | Result |
-|--------|--------|
-| Boot / press Home | Opens the Linux desktop when setup is complete |
-| Setup incomplete or desktop failure | Falls back to the Flutter dashboard |
-| Overlay **Dashboard** | Returns to the Flutter UI (apps, terminal, settings) |
-| Overlay **Android** (or long-press Dashboard) | Opens the system home-app / role picker so you can switch back to One UI / stock launcher |
-
-Home mode does not change the desktop itself — it only controls **when** the Linux session opens. For everyday Android use with occasional Linux, leave the stock launcher as default and open DroidDesk from the app drawer.
+- Foreground service starts before the desktop session where needed
+- X11 / Lorie surface starts without waiting only on focus (reduces black screens on Home / boot)
+- XFCE mobile profile installs atomically (marker written only after configs succeed)
+- Avoids panel restart paths that triggered GDBus “Failed to restart the panel” dialogs
 
 > [!TIP]
 > On Samsung / One UI, set DroidDesk battery usage to **Unrestricted** so the X11 session is less likely to be killed in the background.
 
+## Video (upstream)
+
+[![Watch the video](https://img.youtube.com/vi/QCr4WWsfVv8/maxresdefault.jpg)](https://youtu.be/QCr4WWsfVv8)
+
+## What this actually runs
+
+Tested and confirmed working on the DroidDesk stack:
+
+- **LibreOffice** — documents, spreadsheets, presentations
+- **VS Code** — full editor with extensions
+- **Claude Code** — AI coding agent in the terminal
+- **Blender** — installs and opens (heavy on mobile GPUs)
+- **Wireshark** / **Metasploit** — via Proot / apt where needed
+- **Local AI** — offline LLM inference on-device
+
+If it runs on Ubuntu/Termux GUI packages, it can run here.
+
+## How it works
+
+- **Standalone APK (recommended):** Embedded Termux:X11 (`libXlorie.so`) in a dedicated process; Linux on `DISPLAY=:0`. No separate Termux:X11 app required.
+  - **Non-root:** App-private Termux userspace + X11/TUR packages (main desktop path does not use PRoot).
+  - **Root:** Ubuntu filesystem via `chroot`.
+  - **GPU:** Adreno → Turnip/Zink when available; otherwise Mesa software rendering.
+- **Classic Termux scripts:** Still available for users who prefer a Termux + Termux:X11 install (see below).
+- **Proot:** Optional Ubuntu/Debian/Kali container for packages not in TUR; menu sync can surface those apps on the desktop.
+
 ## Requirements
 
-- Any Android phone (ARM64)
-- [Termux](https://f-droid.org/en/packages/com.termux/) (install from F-Droid, not Play Store) — for the classic script path
-- [Termux-X11](https://github.com/termux/termux-x11/releases/tag/nightly) (for on-phone display) — for the classic script path
+- Android phone (ARM64)
+- For **standalone APK:** nothing else — X11 is embedded
+- For **classic script path:** [Termux (F-Droid)](https://f-droid.org/en/packages/com.termux/) + [Termux-X11 nightly](https://github.com/termux/termux-x11/releases/tag/nightly)
 
-The standalone APK embeds its own X11 server and does not require separate Termux:X11.
+### Optional monitor output
 
-### For Monitor Output ( Optional )
-
-**Option A: USB-C Display Output**
-If your phone supports display output over USB-C, just use a USB-C to HDMI adapter. Done.
-
-**Option B: Raspberry Pi Bridge**
-For phones without display output (most mid-range phones with USB 2.0), use a Raspberry Pi Zero 2W as a bridge:
-- Raspberry Pi Zero 2W with Raspberry Pi OS
-- Micro USB to USB-C cable
-- USB-C hub
-- Micro HDMI to HDMI adapter
-- SD card with Pi firmware
-- Wireless keyboard and mouse
-
-The Pi connects to the phone via USB tethering, detects the phone's IP automatically, and opens a VNC viewer to display the phone's desktop on the monitor.
+| Path | When to use |
+|------|-------------|
+| USB-C HDMI / DeX | Phones with DisplayPort Alt Mode |
+| Raspberry Pi VNC bridge | Phones without wired display out (e.g. many mid-range USB 2.0 devices) — see [Pi bridge](#raspberry-pi-monitor-bridge) |
 
 ## Installation
 
-### Standalone APK (recommended for launcher mode)
+### Standalone APK (recommended)
 
-1. Build or download `app-release.apk`.
+1. Download a release APK or build:
+
+   ```bash
+   cd app
+   flutter pub get
+   flutter build apk --release
+   ```
+
+   Output: `app/build/app/outputs/flutter-apk/app-release.apk`
+
 2. Sideload and open **DroidDesk**.
-3. Finish setup, then optionally set it as the default home app (see above).
+3. Finish the setup wizard.
+4. Optionally: **Set as Default Launcher** on the dashboard.
+5. Use the floating bar: **Keyboard** · input mode · **Dashboard** · **Android**.
 
 ### Classic Termux path
 
-#### Step 1: Install Termux
+<details>
+<summary>Termux + setup script (upstream-compatible)</summary>
 
-Download and install Termux from F-Droid:
-https://f-droid.org/en/packages/com.termux/
+1. Install Termux from F-Droid (not Play Store).
+2. Install [Termux-X11 nightly](https://github.com/termux/termux-x11/releases/tag/nightly).
+3. In Termux:
 
-Do NOT use the Play Store version. It is outdated and will not work.
+   ```bash
+   curl -sL https://raw.githubusercontent.com/orailnoor/DroidDesk/main/termux-linux-setup.sh -o setup.sh
+   bash setup.sh
+   ```
 
-#### Step 2: Install Termux-X11
+4. Start desktop: `bash ~/start-x11.sh`, then open Termux-X11.
 
-Download the latest APK from:
-https://github.com/termux/termux-x11/releases/tag/nightly
+| Command | Purpose |
+|---------|---------|
+| `bash ~/start-x11.sh` | Desktop via Termux-X11 |
+| `bash ~/start-vnc.sh` | Desktop via VNC |
+| `bash ~/start-proot.sh` | Proot Linux shell |
+| `bash ~/proot-menu-sync.sh` | Sync Proot apps to the menu |
+| `bash ~/stop-linux.sh` | Stop sessions |
 
-Install it on your phone. This is the display server that renders the desktop.
+</details>
 
-#### Step 3: Run the Setup Script
+## Raspberry Pi monitor bridge
 
-Open Termux and run:
-
-```bash
-curl -sL https://raw.githubusercontent.com/orailnoor/DroidDesk/main/termux-linux-setup.sh -o setup.sh
-bash setup.sh
-```
-
-The script will:
-1. Update Termux packages
-2. Add X11 and TUR repositories
-3. Install your chosen desktop environment (XFCE4/LXQt/MATE/KDE)
-4. Set up GPU acceleration (Turnip for Adreno, Zink fallback for others)
-5. Install Firefox, Git, Python, and core tools
-6. Set up a Proot Linux container (Ubuntu/Debian/Kali)
-7. Create the App Bridge for automatic menu syncing
-8. Apply a modern dark theme
-9. Optionally set up VNC for remote access
-
-#### Step 4: Start the Desktop
-
-After installation completes:
-
-```bash
-bash ~/start-x11.sh
-```
-
-Then open the Termux-X11 app on your phone. Your desktop is ready.
-
-#### Step 5: Install Apps Inside Proot
-
-To install tools that are not in TUR:
-
-```bash
-bash ~/start-proot.sh
-apt install wireshark    # or any other package
-exit
-bash ~/proot-menu-sync.sh
-```
-
-The app will appear in your desktop menu automatically.
-
-## Raspberry Pi Monitor Bridge Setup
-
-If you are using a Raspberry Pi Zero 2W to output to a monitor:
-
-### Step 1: Flash Raspberry Pi OS
-
-Flash standard Raspberry Pi OS to an SD card and boot the Pi.
-
-### Step 2: Install VNC Viewer on the Pi
-
-```bash
-sudo apt update
-sudo apt install realvnc-vnc-viewer
-```
-
-### Step 3: Copy the Launcher Script
-
-Copy `pi-launch_phone.sh` to your Pi:
-
-```bash
-curl -sL https://raw.githubusercontent.com/orailnoor/DroidDesk/main/pi-launch_phone.sh -o ~/pi-launch_phone.sh
-chmod +x ~/pi-launch_phone.sh
-```
-
-### Step 4: Connect and Launch
-
-1. Connect the phone to the Pi via USB cable
-2. Enable USB Tethering on the phone
-3. Start VNC on the phone: `bash ~/start-vnc.sh` (in Termux)
-4. Run the bridge script on the Pi:
-
-```bash
-bash ~/pi-launch_phone.sh
-```
-
-The script auto-detects the phone's IP and opens a fullscreen VNC session on the monitor.
-
-### Optional: Auto-Launch on Boot
-
-To make the Pi automatically connect when powered on, add to crontab:
-
-```bash
-crontab -e
-```
-
-Add this line:
-
-```
-@reboot sleep 15 && /home/pi/pi-launch_phone.sh
-```
-
-## Commands Reference
-
-| Command | What It Does |
-|---|---|
-| `bash ~/start-x11.sh` | Start desktop via Termux-X11 |
-| `bash ~/start-vnc.sh` | Start desktop via VNC (if installed) |
-| `bash ~/start-proot.sh` | Open Proot Linux shell |
-| `bash ~/proot-menu-sync.sh` | Sync Proot apps to desktop menu |
-| `bash ~/stop-linux.sh` | Stop all sessions |
+For phones without USB-C display output, a Pi Zero 2W can tether over USB and show the phone desktop with a VNC viewer. Scripts: `pi-launch_phone.sh` (see upstream docs for flash / auto-boot notes). Prefer on-phone X11 when you are not using an external monitor.
 
 ## Notes
 
 > [!WARNING]
-> **Disable Child Process in Developer Options**
-> On some Android versions (MIUI, One UI, stock Android 13+), the system may kill Termux background processes and drop your desktop session. To prevent this:
-> 1. Go to **Settings → Developer Options**
-> 2. Find **"Child process"** (may be labeled differently depending on your ROM)
-> 3. Disable child process restrictions for Termux / DroidDesk
->
-> Without this, long-running sessions (VNC, Termux-X11) may be killed by the OS without warning.
+> **Disable child-process restrictions** in Developer Options on ROMs that kill background processes (MIUI, One UI, stock Android 13+). Otherwise long-running X11 sessions may die without warning.
 
-- Termux-X11 directly on the phone is faster than VNC. Use VNC only when you need monitor output through the Pi bridge or remote access from another device.
-- For standalone phone use without a monitor, Termux-X11 (or the embedded X11 in the APK) is the recommended option.
-- The Proot container shares the display with the native Termux desktop. Apps installed in Proot render on the same screen.
-- GPU acceleration works best on Adreno GPUs (Qualcomm Snapdragon phones). Other GPUs fall back to software rendering.
+- On-phone X11 is faster than VNC; use VNC for the Pi bridge or remote access.
+- GPU acceleration is strongest on Adreno (Snapdragon); other GPUs fall back to software rendering.
+- Electron/Chromium apps as root may need `--no-sandbox` — see [APP_TROUBLESHOOTING.md](APP_TROUBLESHOOTING.md).
 
 ## Credits
 
-Created by [orailnoor](https://youtube.com/@orailnoor). Home launcher mode maintained in this fork.
+Created by [orailnoor](https://youtube.com/@orailnoor). Home launcher mode and phone UX maintained in this fork ([anugotta/DroidDeskLauncher](https://github.com/anugotta/DroidDeskLauncher)).
 
 ## License and third-party software
 
-DroidDesk is independent software licensed under
-[GNU GPL version 3 only](LICENSE). It is not affiliated with or endorsed by
-Termux, Termux:X11, TUR, Canonical, Ubuntu, or other upstream projects.
+DroidDesk is independent software licensed under [GNU GPL version 3 only](LICENSE). It is not affiliated with or endorsed by Termux, Termux:X11, TUR, Canonical, Ubuntu, or other upstream projects.
 
-The Android application incorporates GPL-licensed Termux:X11 components and
-bundles other third-party software under their respective licenses. See:
+See:
 
 - [Notices and attribution](NOTICE.md)
 - [Third-party software inventory](THIRD_PARTY_NOTICES.md)
 - [Release compliance status](COMPLIANCE.md)
 
-The current compliance checklist includes unresolved source provenance,
-reproducible-build, custom-prefix bootstrap, and wallpaper-license work. Do not
-describe a binary release as fully compliant until the blocking checklist items
-are complete.
+The compliance checklist may still list unresolved provenance / reproducible-build items. Do not describe a binary release as fully compliant until those items are complete.

@@ -14,7 +14,7 @@ import java.io.File
  */
 object XfceMobileProfile {
     private const val TAG = "XfceMobileProfile"
-    private const val PROFILE_MARKER = ".droiddesk-xfce-mobile-v10"
+    private const val PROFILE_MARKER = ".droiddesk-xfce-mobile-v13"
     private const val WALLPAPER_ASSET = "droiddesk/ubuntu-touch-wallpaper.jpg"
 
     fun install(
@@ -77,7 +77,7 @@ object XfceMobileProfile {
                     file.name != PROFILE_MARKER
             }?.forEach { it.delete() }
             marker.writeText("1\n")
-            Log.i(TAG, "Installed XFCE mobile profile v10 in ${homeDir.absolutePath}")
+            Log.i(TAG, "Installed XFCE mobile profile v13 in ${homeDir.absolutePath}")
             true
         } catch (error: Exception) {
             Log.e(TAG, "Failed to install XFCE mobile profile — leaving previous config intact", error)
@@ -166,6 +166,17 @@ object XfceMobileProfile {
               margin: 0;
               padding: 0;
             }
+            /* Custom panel bg breaks Adwaita-dark label colors — force light text. */
+            .xfce4-panel {
+              color: #f5f7fa;
+            }
+            .xfce4-panel label,
+            .xfce4-panel .clock label,
+            .xfce4-panel .digital-clock label,
+            #clock-button label {
+              color: #f5f7fa;
+              opacity: 1;
+            }
             $endMarker
         """.trimIndent()
         val existing = if (cssFile.exists()) cssFile.readText() else ""
@@ -249,7 +260,14 @@ object XfceMobileProfile {
               <property name="flat-buttons" type="bool" value="true"/>
               <property name="show-tooltips" type="bool" value="true"/>
             </property>
-            <property name="plugin-3" type="string" value="clock"/>
+            <property name="plugin-3" type="string" value="clock">
+              <property name="mode" type="uint" value="2"/>
+              <property name="digital-layout" type="uint" value="3"/>
+              <property name="digital-time-format" type="string" value="%R"/>
+              <property name="digital-date-format" type="string" value="%a %d %b"/>
+              <property name="digital-time-font" type="string" value="Sans Bold 11"/>
+              <property name="digital-date-font" type="string" value="Sans 9"/>
+            </property>
             <property name="plugin-20" type="string" value="applicationsmenu">
               <property name="show-button-title" type="bool" value="false"/>
             </property>
