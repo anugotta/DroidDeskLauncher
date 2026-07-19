@@ -1,8 +1,10 @@
-# DroidDesk Launcher (app)
+# ServalDesk (app)
 
-Flutter + Android app for **DroidDesk** — full Linux desktop on ARM64 Android, with optional **home launcher** routing and phone-oriented XFCE defaults.
+Flutter + Android app for **ServalDesk** — full Linux desktop on ARM64 Android (based on [DroidDesk](https://github.com/orailnoor/DroidDesk)), with optional **home launcher** routing and phone-oriented XFCE defaults.
 
-## Features (this fork)
+**Package id:** `com.servaldesk.app`
+
+## Features
 
 - Standalone APK with embedded Termux:X11 (`DISPLAY=:0`)
 - Setup wizard + Flutter dashboard
@@ -32,6 +34,7 @@ APK: `build/app/outputs/flutter-apk/app-release.apk`
 | `LauncherRouterActivity` | `HOME` / `DEFAULT` entry → desktop or Flutter |
 | `DesktopActivity` | Fullscreen X11 surface + floating controls + VNC display-mode watch |
 | `MainActivity` | Flutter dashboard / setup |
+| `ServalDeskService` | Foreground service keeping the Linux session alive |
 | `XfceMobileProfile` | Touch-oriented XFCE config + dock/VNC helpers (versioned markers) |
 | `X11InputController` | Trackpad / direct touch / touchscreen; phone vs VNC display prefs |
 

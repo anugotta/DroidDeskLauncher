@@ -15,7 +15,7 @@
 #include <android/log.h>
 
 #ifndef NEW_PREFIX
-#define NEW_PREFIX "/data/user/0/com.orailnoor.droiddesk/files/usr"
+#define NEW_PREFIX "/data/user/0/com.servaldesk.app/files/usr"
 #endif
 
 static const char *TERMUX_PREFIX = "/data/data/com.termux/files/usr";

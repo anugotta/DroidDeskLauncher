@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.runtime
+package com.servaldesk.app.runtime
 
 import android.content.Context
 import android.util.Log
@@ -329,7 +329,7 @@ object XfceMobileProfile {
         _dd_notify() {
           title="${'$'}1"; body="${'$'}2"
           if command -v notify-send >/dev/null 2>&1; then
-            notify-send -a DroidDesk "${'$'}title" "${'$'}body" 2>/dev/null || true
+            notify-send -a ServalDesk "${'$'}title" "${'$'}body" 2>/dev/null || true
           fi
           if command -v zenity >/dev/null 2>&1; then
             zenity --info --title="${'$'}title" --text="${'$'}body" --width=380 2>/dev/null &
@@ -338,7 +338,7 @@ object XfceMobileProfile {
         _dd_error() {
           title="${'$'}1"; body="${'$'}2"
           if command -v notify-send >/dev/null 2>&1; then
-            notify-send -u critical -a DroidDesk "${'$'}title" "${'$'}body" 2>/dev/null || true
+            notify-send -u critical -a ServalDesk "${'$'}title" "${'$'}body" 2>/dev/null || true
           fi
           if command -v zenity >/dev/null 2>&1; then
             zenity --error --title="${'$'}title" --text="${'$'}body" --width=380 2>/dev/null || true
@@ -360,7 +360,7 @@ object XfceMobileProfile {
     """.trimIndent()
 
     private fun vncShareScript(): String = """
-        # Share the live DroidDesk X session over VNC at a laptop-sized resolution.
+        # Share the live ServalDesk X session over VNC at a laptop-sized resolution.
         export DISPLAY="${'$'}{DISPLAY:-:0}"
         export PATH="${'$'}HOME/.local/bin:${'$'}PREFIX/bin:/usr/bin:/bin:${'$'}PATH"
         ${shellNotifyHelpers()}

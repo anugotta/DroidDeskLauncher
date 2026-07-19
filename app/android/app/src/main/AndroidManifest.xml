@@ -21,7 +21,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
-        android:label="DroidDesk"
+        android:label="ServalDesk"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:requestLegacyExternalStorage="true"
@@ -82,7 +82,7 @@
 
         <!-- Foreground Service: keeps the chroot or native Termux session alive -->
         <service
-            android:name=".service.DroidDeskService"
+            android:name=".service.ServalDeskService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />

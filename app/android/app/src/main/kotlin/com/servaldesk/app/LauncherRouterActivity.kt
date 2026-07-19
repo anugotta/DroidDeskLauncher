@@ -1,14 +1,14 @@
-package com.orailnoor.droiddesk
+package com.servaldesk.app
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import com.orailnoor.droiddesk.runtime.ChrootRuntime
-import com.orailnoor.droiddesk.runtime.LinuxRuntime
-import com.orailnoor.droiddesk.service.DroidDeskService
-import com.orailnoor.droiddesk.view.DesktopActivity
+import com.servaldesk.app.runtime.ChrootRuntime
+import com.servaldesk.app.runtime.LinuxRuntime
+import com.servaldesk.app.service.ServalDeskService
+import com.servaldesk.app.view.DesktopActivity
 
 /**
  * Default-home entry point. Routes boot / Home presses to the Linux desktop
@@ -73,14 +73,14 @@ class LauncherRouterActivity : Activity() {
 
     private fun startLinuxForegroundService() {
         try {
-            val intent = Intent(this, DroidDeskService::class.java)
+            val intent = Intent(this, ServalDeskService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {
                 startService(intent)
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "Could not start DroidDeskService", error)
+            Log.w(TAG, "Could not start ServalDeskService", error)
         }
     }
 }

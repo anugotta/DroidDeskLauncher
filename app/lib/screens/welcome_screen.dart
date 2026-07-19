@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/screens/setup/de_picker.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/screens/setup/de_picker.dart';
 
 /// Welcome screen — first thing the user sees.
-/// Premium, animated landing with the DroidDesk brand.
+/// Premium, animated landing with the ServalDesk brand.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -56,7 +56,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 // ── Title ──
                 Text(
-                      'DroidDesk',
+                      'ServalDesk',
                       style: DroidTheme.headingXl.copyWith(
                         fontSize: 36,
                         letterSpacing: -1.0,

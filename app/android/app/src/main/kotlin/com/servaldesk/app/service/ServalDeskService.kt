@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.service
+package com.servaldesk.app.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -12,7 +12,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.orailnoor.droiddesk.MainActivity
+import com.servaldesk.app.MainActivity
 
 /**
  * Foreground service that keeps the Linux runtime alive.
@@ -21,10 +21,10 @@ import com.orailnoor.droiddesk.MainActivity
  * Phantom Process Killer). This service ensures our native Termux/chroot session, desktop
  * environment, and Wayland compositor survive when the user switches apps.
  */
-class DroidDeskService : Service() {
+class ServalDeskService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "droiddesk_service"
+        const val CHANNEL_ID = "servaldesk_service"
         const val NOTIFICATION_ID = 1001
     }
 
@@ -66,7 +66,7 @@ class DroidDeskService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "DroidDesk Linux Service",
+                "ServalDesk Linux Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Keeps the Linux desktop environment running"
@@ -86,7 +86,7 @@ class DroidDeskService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DroidDesk")
+            .setContentTitle("ServalDesk")
             .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(pendingIntent)
@@ -109,7 +109,7 @@ class DroidDeskService : Service() {
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "DroidDesk::LinuxRuntime"
+            "ServalDesk::LinuxRuntime"
         ).apply {
             acquire(Long.MAX_VALUE)  // Keep CPU alive
         }

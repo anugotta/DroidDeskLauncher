@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.runtime
+package com.servaldesk.app.runtime
 
 import android.content.Context
 import android.util.Log
@@ -117,7 +117,7 @@ class ChrootRuntime(private val context: Context) {
             writeText(
                 """
                 #!/bin/bash
-                # DroidDesk portable graphics environment
+                # ServalDesk portable graphics environment
                 export DISPLAY=:0
                 export XDG_RUNTIME_DIR=/tmp/runtime-root
                 export XDG_SESSION_TYPE=x11
@@ -349,7 +349,7 @@ class ChrootRuntime(private val context: Context) {
             export PREFIX=/usr
             export LD_PRELOAD=/usr/local/lib/libclose_range_hack.so
 
-            # Source DroidDesk environment
+            # Source ServalDesk environment
             . /etc/profile.d/droiddesk-ha.sh 2>/dev/null || true
 
             # Session D-Bus
@@ -461,7 +461,7 @@ class ChrootRuntime(private val context: Context) {
     }
 
     /**
-     * Unmount all DroidDesk-related mounts.
+     * Unmount all ServalDesk-related mounts.
      */
     fun unmountAll() {
         if (!hasRoot()) return

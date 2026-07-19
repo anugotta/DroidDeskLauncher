@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/screens/setup/de_picker.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/state/app_state.dart';
+import 'package:servaldesk/screens/setup/de_picker.dart';
 
 /// Distro selection screen — step 1 of setup wizard.
 class DistroPickerScreen extends StatelessWidget {

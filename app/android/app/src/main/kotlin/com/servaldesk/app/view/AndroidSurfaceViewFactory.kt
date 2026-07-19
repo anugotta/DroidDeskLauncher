@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.view
+package com.servaldesk.app.view
 
 import android.content.Context
 import io.flutter.plugin.common.StandardMessageCodec

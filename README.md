@@ -1,16 +1,16 @@
-# DroidDesk Launcher
+# ServalDesk
 
 Full Linux desktop on ARM64 Android — not a terminal app, not an emulator. Native kernel access, embedded X11, and an optional **Android home launcher** so boot and Home open the desktop directly.
 
-This repository (`DroidDeskLauncher`) builds on [upstream DroidDesk](https://github.com/orailnoor/DroidDesk) with phone-first UX: home routing, a touch-oriented XFCE layout, floating controls, and safer session start.
+**ServalDesk** (`com.servaldesk.app`) is a branded fork of [DroidDesk](https://github.com/orailnoor/DroidDesk) with phone-first UX: home routing, a touch-oriented XFCE layout, floating controls, and safer session start. Repository path may still be named `DroidDeskLauncher`.
 
 > [!IMPORTANT]
-> DroidDesk is an independent GPL-3.0 open-source project that incorporates
-> modified Termux:X11 components. It is not affiliated with or endorsed by
-> Termux, Termux:X11, TUR, Canonical, or Ubuntu.
+> ServalDesk is based on **DroidDesk**, an independent GPL-3.0 open-source project that
+> incorporates modified Termux:X11 components. It is not affiliated with or endorsed by
+> Termux, Termux:X11, TUR, Canonical, Ubuntu, or Serval Inc. (ITSM / helpdesk).
 >
-> - **This fork (launcher):** <https://github.com/anugotta/DroidDeskLauncher>
-> - **Upstream project:** <https://github.com/orailnoor/DroidDesk>
+> - **This product (ServalDesk):** <https://github.com/anugotta/DroidDeskLauncher>
+> - **Upstream DroidDesk:** <https://github.com/orailnoor/DroidDesk>
 > - **Termux:X11 upstream:** <https://github.com/termux/termux-x11>
 
 ## Screenshots
@@ -37,7 +37,7 @@ This repository (`DroidDeskLauncher`) builds on [upstream DroidDesk](https://git
 
 ## What’s new in this fork
 
-Compared with the original DroidDesk app experience, this launcher fork focuses on **using Linux as a phone home screen** and fixing rough edges on real devices (tested on Samsung Galaxy A70 / One UI).
+Compared with the original DroidDesk app experience, ServalDesk focuses on **using Linux as a phone home screen** and fixing rough edges on real devices (tested on Samsung Galaxy A70 / One UI).
 
 ### Home launcher mode
 
@@ -49,7 +49,7 @@ Compared with the original DroidDesk app experience, this launcher fork focuses 
 | Overlay **Android** | Leaves Linux for the **stock Android home** (not just settings) |
 | Long-press **Android** / **Dashboard** | Opens the system default-home / role picker |
 
-Set DroidDesk as the default home app from the dashboard (**Set as Default Launcher**). For casual use, leave the stock launcher as default and open DroidDesk from the app drawer.
+Set ServalDesk as the default home app from the dashboard (**Set as Default Launcher**). For casual use, leave the stock launcher as default and open ServalDesk from the app drawer.
 
 ### Phone desktop UX
 
@@ -83,15 +83,15 @@ Phones without USB-C DisplayPort Alt Mode can share the live desktop over Wi‑F
 - Avoids panel restart paths that triggered GDBus “Failed to restart the panel” dialogs
 
 > [!TIP]
-> On Samsung / One UI, set DroidDesk battery usage to **Unrestricted** so the X11 session is less likely to be killed in the background.
+> On Samsung / One UI, set ServalDesk battery usage to **Unrestricted** so the X11 session is less likely to be killed in the background.
 
-## Video (upstream)
+## Video (upstream DroidDesk)
 
 [![Watch the video](https://img.youtube.com/vi/QCr4WWsfVv8/maxresdefault.jpg)](https://youtu.be/QCr4WWsfVv8)
 
 ## What this actually runs
 
-Tested and confirmed working on the DroidDesk stack:
+Tested and confirmed working on the DroidDesk / ServalDesk stack:
 
 - **LibreOffice** — documents, spreadsheets, presentations
 - **VS Code** — full editor with extensions
@@ -137,9 +137,10 @@ If it runs on Ubuntu/Termux GUI packages, it can run here.
    flutter build apk --release
    ```
 
-   Output: `app/build/app/outputs/flutter-apk/app-release.apk`
+   Output: `app/build/app/outputs/flutter-apk/app-release.apk`  
+   Package id: `com.servaldesk.app`
 
-2. Sideload and open **DroidDesk**.
+2. Sideload and open **ServalDesk**.
 3. Finish the setup wizard.
 4. Optionally: **Set as Default Launcher** on the dashboard.
 5. Use the floating bar: **Keyboard** · input mode · **Dashboard** · **Android**.
@@ -185,13 +186,13 @@ For phones without USB-C display output, a Pi Zero 2W can tether over USB and sh
 
 ## Credits
 
-Created by [orailnoor](https://youtube.com/@orailnoor). Home launcher mode and phone UX maintained in this fork ([anugotta/DroidDeskLauncher](https://github.com/anugotta/DroidDeskLauncher)).
+Created by [orailnoor](https://youtube.com/@orailnoor) as DroidDesk. ServalDesk home-launcher mode and phone UX maintained in this fork ([anugotta/DroidDeskLauncher](https://github.com/anugotta/DroidDeskLauncher)).
 
 Bundled wallpapers: [Unsplash](https://unsplash.com) contributors — see `app/android/app/src/main/assets/droiddesk/wallpapers/CREDITS.txt`.
 
 ## License and third-party software
 
-DroidDesk is independent software licensed under [GNU GPL version 3 only](LICENSE). It is not affiliated with or endorsed by Termux, Termux:X11, TUR, Canonical, Ubuntu, or other upstream projects.
+ServalDesk redistributes DroidDesk-derived code under [GNU GPL version 3 only](LICENSE). It is not affiliated with or endorsed by Termux, Termux:X11, TUR, Canonical, Ubuntu, Serval Inc., or other upstream projects.
 
 See:
 

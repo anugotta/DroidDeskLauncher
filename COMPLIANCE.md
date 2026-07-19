@@ -24,7 +24,7 @@ The following SHA-256 values identify the binary inputs present during the
 | `libandroid-shmem.so` | `84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731` |
 | `libproot-loader.so` | `44ef39c1e1a18c09f6e4c4b5d6f8bba82d30596598bd155ec162d05c5122ff04` |
 | `libproot.so` | `1f2e9eb2f1070cdd7681227c62689923bcbf6f9c9863bba59d0b9ad379b82b39` |
-| `libsocket_hook.so` | `d80c2cc8dee6f745bea0dc779e19b04d85fe46d4803c9784b4b63d99cf3d43a1` |
+| `libsocket_hook.so` | `a4fed53286cc43474553b9c069a59d9d66495dc99c4336adf9aec90699ad9bc2` |
 | `libtalloc.so` | `777badd62d21865ea3ef7f5c1095f062b4a87c6aaab3287d43a5c3c9c83cb572` |
 | `app/assets/bootstrap-aarch64.zip` | `b6706d470a3e3fcf7cd5c056757c25abd0f61687a40f90ce809289efcc6969fd` |
 
@@ -44,7 +44,7 @@ source record.
 - [ ] Identify the exact source and license for `libandroid-shmem.so` and
   `libtalloc.so`.
 - [ ] Rebuild the Termux bootstrap and packages for
-  `com.orailnoor.droiddesk` rather than relocating binaries built for
+  `com.servaldesk.app` rather than relocating binaries built for
   `com.termux`.
 - [ ] Publish a machine-readable bootstrap manifest containing package names,
   versions, architectures, source URLs, license identifiers, build revisions,

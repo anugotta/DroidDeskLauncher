@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/state/app_state.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/state/app_state.dart';
 
 class DEInstallScreen extends StatefulWidget {
   const DEInstallScreen({super.key});

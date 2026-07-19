@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/services/platform_bridge.dart';
-import 'package:droiddesk/screens/setup/de_install_screen.dart';
-import 'package:droiddesk/screens/apps/app_catalog_screen.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/state/app_state.dart';
+import 'package:servaldesk/services/platform_bridge.dart';
+import 'package:servaldesk/screens/setup/de_install_screen.dart';
+import 'package:servaldesk/screens/apps/app_catalog_screen.dart';
 
 /// Home dashboard — shown after setup is complete.
 /// Central hub for launching the desktop, terminal, and managing the environment.
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: DroidTheme.surface,
         title: Text('Set as Home Launcher?', style: DroidTheme.headingSm),
         content: Text(
-          'Make DroidDesk your default home app so the phone boots and returns Home directly into the Linux desktop.',
+          'Make ServalDesk your default home app so the phone boots and returns Home directly into the Linux desktop.',
           style: DroidTheme.bodySm,
         ),
         actions: [
@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('DroidDesk', style: DroidTheme.headingSm),
+                          Text('ServalDesk', style: DroidTheme.headingSm),
                           Text(
                             state.isRunning ? 'Desktop Running' : 'Ready',
                             style: DroidTheme.bodySm.copyWith(
@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'DroidDesk is already the default home app.',
+                                  'ServalDesk is already the default home app.',
                                 ),
                               ),
                             );
@@ -528,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Battery Optimization'),
               subtitle: const Text('Disable to prevent session killing'),
               onTap: () {
-                DroidDeskPlatform.requestBatteryOptimization();
+                ServalDeskPlatform.requestBatteryOptimization();
                 Navigator.pop(context);
               },
             ),
@@ -537,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Default Home App'),
               subtitle: const Text('Change which app opens on Home / boot'),
               onTap: () {
-                DroidDeskPlatform.requestDefaultHome();
+                ServalDeskPlatform.requestDefaultHome();
                 Navigator.pop(context);
               },
             ),

@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 /// All heavy work (bootstrap extraction, native pkg install, process management)
 /// runs on the Kotlin side. Flutter calls into Kotlin via MethodChannel and
 /// receives callbacks.
-class DroidDeskPlatform {
-  static const _channel = MethodChannel('com.droiddesk/core');
+class ServalDeskPlatform {
+  static const _channel = MethodChannel('com.servaldesk/core');
 
   // Callback handlers (set by the UI layer)
   static Function(double progress, String status)? onDownloadProgress;

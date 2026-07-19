@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.compositor
+package com.servaldesk.app.compositor
 
 import android.view.Surface
 

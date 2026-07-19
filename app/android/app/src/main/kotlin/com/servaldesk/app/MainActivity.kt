@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk
+package com.servaldesk.app
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,13 +12,13 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import com.orailnoor.droiddesk.service.DroidDeskService
-import com.orailnoor.droiddesk.runtime.LinuxRuntime
-import com.orailnoor.droiddesk.runtime.ChrootRuntime
-import com.orailnoor.droiddesk.runtime.RootShell
-import com.orailnoor.droiddesk.view.AndroidSurfaceViewFactory
-import com.orailnoor.droiddesk.view.DesktopActivity
-import com.orailnoor.droiddesk.x11.X11ServerService
+import com.servaldesk.app.service.ServalDeskService
+import com.servaldesk.app.runtime.LinuxRuntime
+import com.servaldesk.app.runtime.ChrootRuntime
+import com.servaldesk.app.runtime.RootShell
+import com.servaldesk.app.view.AndroidSurfaceViewFactory
+import com.servaldesk.app.view.DesktopActivity
+import com.servaldesk.app.x11.X11ServerService
 import kotlin.concurrent.thread
 import android.util.Log
 import android.widget.Toast
@@ -26,7 +26,7 @@ import android.widget.Toast
 class MainActivity : FlutterActivity() {
 
     companion object {
-        private const val CHANNEL = "com.droiddesk/core"
+        private const val CHANNEL = "com.servaldesk/core"
         private const val TAG = "MainActivity"
     }
 
@@ -121,7 +121,7 @@ class MainActivity : FlutterActivity() {
 
                 Log.i(TAG, "Auto-setup: launching desktop...")
                 runOnUiThread {
-                    val intent = Intent(this@MainActivity, com.orailnoor.droiddesk.view.DesktopActivity::class.java).apply {
+                    val intent = Intent(this@MainActivity, com.servaldesk.app.view.DesktopActivity::class.java).apply {
                         putExtra("startSession", true)
                         putExtra("mode", "chroot")
                         putExtra("de", "xfce4")
@@ -143,7 +143,7 @@ class MainActivity : FlutterActivity() {
         flutterEngine
             .platformViewsController
             .registry
-            .registerViewFactory("droiddesk-surface", AndroidSurfaceViewFactory())
+            .registerViewFactory("servaldesk-surface", AndroidSurfaceViewFactory())
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -388,7 +388,7 @@ class MainActivity : FlutterActivity() {
                                 return@thread
                             }
                             runOnUiThread {
-                                val intent = Intent(this@MainActivity, com.orailnoor.droiddesk.view.DesktopActivity::class.java).apply {
+                                val intent = Intent(this@MainActivity, com.servaldesk.app.view.DesktopActivity::class.java).apply {
                                     putExtra("startSession", true)
                                     putExtra("mode", "chroot")
                                     putExtra("de", desktopEnv)
@@ -417,7 +417,7 @@ class MainActivity : FlutterActivity() {
                                 return@thread
                             }
                             runOnUiThread {
-                                val intent = Intent(this@MainActivity, com.orailnoor.droiddesk.view.DesktopActivity::class.java).apply {
+                                val intent = Intent(this@MainActivity, com.servaldesk.app.view.DesktopActivity::class.java).apply {
                                     putExtra("startSession", true)
                                     putExtra("mode", "termux")
                                     putExtra("de", desktopEnv)
@@ -430,7 +430,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "launchDesktopActivity" -> {
-                    val intent = Intent(this@MainActivity, com.orailnoor.droiddesk.view.DesktopActivity::class.java)
+                    val intent = Intent(this@MainActivity, com.servaldesk.app.view.DesktopActivity::class.java)
                     startActivity(intent)
                     result.success(true)
                 }
@@ -525,7 +525,7 @@ class MainActivity : FlutterActivity() {
     // ── Foreground Service ──
 
     private fun startForegroundService() {
-        val intent = Intent(this, DroidDeskService::class.java)
+        val intent = Intent(this, ServalDeskService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
@@ -534,7 +534,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun stopForegroundService() {
-        val intent = Intent(this, DroidDeskService::class.java)
+        val intent = Intent(this, ServalDeskService::class.java)
         stopService(intent)
     }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// DroidDesk Design System
+/// ServalDesk Design System
 /// 
 /// Dark-first, premium design with a cyberpunk-meets-minimal aesthetic.
 /// Colors inspired by modern terminal themes (Dracula/Nord/Catppuccin).

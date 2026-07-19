@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.view
+package com.servaldesk.app.view
 
 import android.app.Activity
 import android.app.role.RoleManager
@@ -34,13 +34,13 @@ import android.os.Looper
 import java.io.File
 import com.termux.x11.MainActivity as TermuxMainActivity
 import com.termux.x11.LorieView
-import com.orailnoor.droiddesk.MainActivity
-import com.orailnoor.droiddesk.runtime.LinuxRuntime
-import com.orailnoor.droiddesk.runtime.ChrootRuntime
-import com.orailnoor.droiddesk.runtime.XfceMobileProfile
-import com.orailnoor.droiddesk.service.DroidDeskService
-import com.orailnoor.droiddesk.x11.X11ServiceClient
-import com.orailnoor.droiddesk.x11.X11InputController
+import com.servaldesk.app.MainActivity
+import com.servaldesk.app.runtime.LinuxRuntime
+import com.servaldesk.app.runtime.ChrootRuntime
+import com.servaldesk.app.runtime.XfceMobileProfile
+import com.servaldesk.app.service.ServalDeskService
+import com.servaldesk.app.x11.X11ServiceClient
+import com.servaldesk.app.x11.X11InputController
 
 class DesktopActivity : Activity() {
     private var lorieView: LorieView? = null
@@ -795,14 +795,14 @@ class DesktopActivity : Activity() {
 
     private fun startLinuxForegroundService() {
         try {
-            val intent = Intent(this, DroidDeskService::class.java)
+            val intent = Intent(this, ServalDeskService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {
                 startService(intent)
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "Could not start DroidDeskService", error)
+            Log.w(TAG, "Could not start ServalDeskService", error)
         }
     }
 

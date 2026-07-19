@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.view
+package com.servaldesk.app.view
 
 import android.content.Context
 import android.graphics.Color
@@ -7,8 +7,8 @@ import android.view.View
 import io.flutter.plugin.platform.PlatformView
 import com.termux.x11.MainActivity
 import com.termux.x11.LorieView
-import com.orailnoor.droiddesk.x11.X11ServiceClient
-import com.orailnoor.droiddesk.x11.X11InputController
+import com.servaldesk.app.x11.X11ServiceClient
+import com.servaldesk.app.x11.X11InputController
 
 class AndroidSurfaceView(
     val context: Context,

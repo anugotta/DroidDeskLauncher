@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/services/platform_bridge.dart';
-import 'package:droiddesk/screens/welcome_screen.dart';
-import 'package:droiddesk/screens/home_screen.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/state/app_state.dart';
+import 'package:servaldesk/services/platform_bridge.dart';
+import 'package:servaldesk/screens/welcome_screen.dart';
+import 'package:servaldesk/screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  DroidDeskPlatform.init();
+  ServalDeskPlatform.init();
 
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppState(),
-      child: const DroidDeskApp(),
+      child: const ServalDeskApp(),
     ),
   );
 }
 
-class DroidDeskApp extends StatefulWidget {
-  const DroidDeskApp({super.key});
+class ServalDeskApp extends StatefulWidget {
+  const ServalDeskApp({super.key});
 
   @override
-  State<DroidDeskApp> createState() => _DroidDeskAppState();
+  State<ServalDeskApp> createState() => _ServalDeskAppState();
 }
 
-class _DroidDeskAppState extends State<DroidDeskApp> {
+class _ServalDeskAppState extends State<ServalDeskApp> {
   @override
   void initState() {
     super.initState();
@@ -38,7 +38,7 @@ class _DroidDeskAppState extends State<DroidDeskApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DroidDesk',
+      title: 'ServalDesk',
       debugShowCheckedModeBanner: false,
       theme: DroidTheme.themeData,
       home: Consumer<AppState>(

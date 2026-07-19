@@ -1,5 +1,5 @@
-name: droiddesk
-description: "DroidDesk - Full Linux Desktop on Android"
+name: servaldesk
+description: "ServalDesk - Full Linux desktop on Android (based on DroidDesk)"
 publish_to: 'none'
 version: 0.1.0
 

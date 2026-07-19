@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.x11
+package com.servaldesk.app.x11
 
 import android.app.Service
 import android.content.Intent

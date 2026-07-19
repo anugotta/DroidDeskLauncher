@@ -1,4 +1,4 @@
-package com.orailnoor.droiddesk.runtime
+package com.servaldesk.app.runtime
 
 import android.content.Context
 import android.os.Build
@@ -14,7 +14,7 @@ import java.util.zip.ZipInputStream
  *
  * Runs native Termux Linux on Android without PRoot.
  * Uses a C hook (libsocket_hook.so) via LD_PRELOAD to redirect file operations
- * and Unix socket connections from /data/data/com.termux/files/usr to DroidDesk's prefix.
+ * and Unix socket connections from /data/data/com.termux/files/usr to ServalDesk's prefix.
  */
 class LinuxRuntime(private val context: Context) {
 
@@ -313,7 +313,7 @@ class LinuxRuntime(private val context: Context) {
         // Copy prebuilt socket hook from jniLibs to prefix/lib
         ensureSocketHookPrebuilt()
 
-        marker.writeText("DroidDesk native bootstrap\n")
+        marker.writeText("ServalDesk native bootstrap\n")
         tmpZip.delete()
         Log.i(TAG, "Bootstrap extraction complete")
     }
@@ -529,7 +529,7 @@ class LinuxRuntime(private val context: Context) {
             uaBin.writeText(
                 """
                 #!/system/bin/sh
-                # update-alternatives is not needed for DroidDesk's single-prefix
+                # update-alternatives is not needed for ServalDesk's single-prefix
                 # environment and fails when dpkg is run with a relocated root.
                 exit 0
                 """.trimIndent()
@@ -999,7 +999,7 @@ class LinuxRuntime(private val context: Context) {
         env["TERMUX_APP__PACKAGE_NAME"] = context.packageName
         env["TERMUX__PREFIX"] = prefixDir.absolutePath
         env["TERMUX__HOME"] = homeDir.absolutePath
-        env["TERMUX_VERSION"] = "DroidDesk"
+        env["TERMUX_VERSION"] = "ServalDesk"
         env["LD_LIBRARY_PATH"] = "${prefixDir.absolutePath}/lib"
         env["PATH"] = listOf(
             "${prefixDir.absolutePath}/bin",
@@ -1329,7 +1329,7 @@ class LinuxRuntime(private val context: Context) {
             return false
         }
         onProgress?.invoke(0.34, "Installing X11 and audio packages...")
-        // DroidDesk embeds the X server, so termux-x11-nightly is deliberately
+        // ServalDesk embeds the X server, so termux-x11-nightly is deliberately
         // not installed. All desktops connect to the service's DISPLAY=:0.
         if (!installPackageGroup("pkg install -y xorg-xrandr pulseaudio")) {
             Log.e(TAG, "Native X11 runtime package install failed")
@@ -1573,7 +1573,7 @@ class LinuxRuntime(private val context: Context) {
             export GTK_A11Y=none
             export DISPLAY=:0
 
-            # Use the session bus DroidDesk already started
+            # Use the session bus ServalDesk already started
             export DBUS_SESSION_BUS_ADDRESS="unix:path=${dbusSocket.absolutePath}"
 
             # Native Android audio. AAudio is reliable on modern Android while

@@ -25,7 +25,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
         children: [
           // Native Wayland Compositor Surface
           PlatformViewLink(
-            viewType: 'droiddesk-surface',
+            viewType: 'servaldesk-surface',
             surfaceFactory: (context, controller) {
               return AndroidViewSurface(
                 controller: controller as AndroidViewController,
@@ -36,7 +36,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
             onCreatePlatformView: (params) {
               return PlatformViewsService.initExpensiveAndroidView(
                 id: params.id,
-                viewType: 'droiddesk-surface',
+                viewType: 'servaldesk-surface',
                 layoutDirection: TextDirection.ltr,
                 creationParams: null,
                 creationParamsCodec: const StandardMessageCodec(),

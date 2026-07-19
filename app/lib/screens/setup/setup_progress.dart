@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
-import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/screens/home_screen.dart';
+import 'package:servaldesk/theme/droid_theme.dart';
+import 'package:servaldesk/state/app_state.dart';
+import 'package:servaldesk/screens/home_screen.dart';
 
 /// Setup progress screen — step 3 of setup wizard.
 /// Shows download, extraction, and configuration progress.
@@ -250,7 +250,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text('Launch DroidDesk'),
+                              Text('Launch ServalDesk'),
                               SizedBox(width: 8),
                               Icon(Icons.rocket_launch_rounded, size: 20),
                             ],
