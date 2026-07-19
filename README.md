@@ -1,6 +1,12 @@
-# ServalDesk
+<p align="center">
+  <img src="docs/branding/logo.png" alt="ServalDesk" width="160"/>
+</p>
 
-Full Linux desktop on ARM64 Android — not a terminal app, not an emulator. Native kernel access, embedded X11, and an optional **Android home launcher** so boot and Home open the desktop directly.
+<h1 align="center">ServalDesk</h1>
+
+<p align="center">
+Full Linux desktop on ARM64 Android — not a terminal app, not an emulator. Native kernel access, embedded X11, and an optional <strong>Android home launcher</strong> so boot and Home open the desktop directly.
+</p>
 
 **ServalDesk** (`com.servaldesk.app`) is a branded fork of [DroidDesk](https://github.com/orailnoor/DroidDesk) with phone-first UX: home routing, a touch-oriented XFCE layout, floating controls, and safer session start. Repository path may still be named `DroidDeskLauncher`.
 
