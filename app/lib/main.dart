@@ -40,7 +40,9 @@ class _ServalDeskAppState extends State<ServalDeskApp> {
     return MaterialApp(
       title: 'ServalDesk',
       debugShowCheckedModeBanner: false,
-      theme: DroidTheme.themeData,
+      theme: DroidTheme.lightThemeData,
+      darkTheme: DroidTheme.themeData,
+      themeMode: ThemeMode.system,
       home: Consumer<AppState>(
         builder: (context, state, _) {
           // Route to setup wizard or home based on bootstrap state

@@ -1,7 +1,7 @@
 name: servaldesk
 description: "ServalDesk - Full Linux desktop on Android (based on DroidDesk)"
 publish_to: 'none'
-version: 0.1.0
+version: 0.2.0+2
 
 environment:
   sdk: ^3.10.3

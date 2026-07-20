@@ -70,6 +70,8 @@ class X11InputController(private val lorieView: LorieView) {
 
         const val DISPLAY_MODE_PHONE = "phone"
         const val DISPLAY_MODE_VNC = "vnc"
+        /** External HDMI / DeX — XFCE desktop density; framebuffer still phone-scaled unless VNC. */
+        const val DISPLAY_MODE_DOCKED = "docked"
 
         /** Written by droiddesk-vnc-share / stop under \$HOME/.cache/ */
         const val DISPLAY_MODE_FILENAME = "droiddesk-display-mode"

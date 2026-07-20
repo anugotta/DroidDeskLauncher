@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.provider.Settings
 import android.view.Window
 import android.view.WindowInsets
@@ -56,9 +58,9 @@ class DesktopActivity : Activity() {
     private var statusText: TextView? = null
     private var x11ServiceClient: X11ServiceClient? = null
     private var inputController: X11InputController? = null
-    private var inputModeButton: Button? = null
+    private var inputModeButton: TextView? = null
     private var controlOverlay: LinearLayout? = null
-    private var collapsedControl: Button? = null
+    private var collapsedControl: TextView? = null
     private var surfaceCallback: SurfaceHolder.Callback? = null
     private var x11RetryUsed = false
     private var lastSurfaceW = 0
@@ -77,8 +79,8 @@ class DesktopActivity : Activity() {
     companion object {
         private const val TAG = "DesktopActivity"
         const val EXTRA_DESKTOP_ERROR = "desktopError"
-        /** Minimum black inset so rounded phone corners don't clip the desktop. */
-        private const val MIN_SAFE_INSET_DP = 18f
+        /** Light inset so rounded corners don't clip panel clock / show-desktop. */
+        private const val MIN_SAFE_INSET_DP = 12f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -164,6 +166,7 @@ class DesktopActivity : Activity() {
         enableImmersiveMode()
         applySafeAreaInsets()
         ensureLorieSetup("onResume")
+        maybeApplyExternalDesktopMode()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -199,6 +202,8 @@ class DesktopActivity : Activity() {
         placeholder.requestLayout()
 
         // Layout → surface size update can take a frame or two after rotate.
+        // Fit only after we can compute the expected X11 root size and pass it
+        // into the script so Firefox/etc. don't lock to the pre-rotate geometry.
         desktopSurface.post {
             if (generation != geometryChangeGeneration || isFinishing) return@post
             applySafeAreaInsets()
@@ -209,16 +214,17 @@ class DesktopActivity : Activity() {
             applySafeAreaInsets()
             refreshX11Viewport("post-layout-delayed")
             resizeLinuxWindowsToFit()
-        }, 400)
+        }, 500)
         desktopSurface.postDelayed({
             if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
             refreshX11Viewport("post-layout-settle")
             resizeLinuxWindowsToFit()
-        }, 1000)
+            maybeApplyExternalDesktopMode()
+        }, 1200)
         desktopSurface.postDelayed({
             if (generation != geometryChangeGeneration || isFinishing) return@postDelayed
             resizeLinuxWindowsToFit()
-        }, 1800)
+        }, 2200)
     }
 
     private fun refreshX11Viewport(reason: String) {
@@ -239,13 +245,68 @@ class DesktopActivity : Activity() {
         }
     }
 
+    /**
+     * X root size Lorie will publish for the current view + prefs
+     * (mirrors LorieView.getDimensionsFromSettings).
+     */
+    private fun expectedX11Size(): Pair<Int, Int>? {
+        val view = lorieView ?: return null
+        val width = view.width
+        val height = view.height
+        if (width <= 0 || height <= 0) return null
+        return try {
+            val prefs = TermuxMainActivity.getPrefs()
+            var w = width
+            var h = height
+            when (prefs.displayResolutionMode.get()) {
+                "scaled" -> {
+                    val scale = prefs.displayScale.get().coerceAtLeast(1)
+                    w = width * 100 / scale
+                    h = height * 100 / scale
+                }
+                "exact" -> {
+                    val parts = prefs.displayResolutionExact.get().split("x")
+                    w = parts.getOrNull(0)?.toIntOrNull() ?: return null
+                    h = parts.getOrNull(1)?.toIntOrNull() ?: return null
+                }
+                "custom" -> {
+                    val parts = prefs.displayResolutionCustom.get().split("x")
+                    w = parts.getOrNull(0)?.toIntOrNull() ?: 1280
+                    h = parts.getOrNull(1)?.toIntOrNull() ?: 1024
+                    if (w <= 0 || h <= 0) {
+                        w = 1280
+                        h = 1024
+                    }
+                }
+            }
+            if (prefs.adjustResolution.get() &&
+                ((width < height && w > h) || (width > height && w < h))
+            ) {
+                val tmp = w
+                w = h
+                h = tmp
+            }
+            if (w <= 0 || h <= 0) null else w to h
+        } catch (error: Throwable) {
+            Log.w(TAG, "expectedX11Size failed", error)
+            null
+        }
+    }
+
     private fun resizeLinuxWindowsToFit() {
         if (!isSessionRunning()) return
+        val expected = expectedX11Size()
         Thread({
             // Do NOT run `xfce4-panel -r` — it triggers GDBus panel dialogs.
+            val exportExpected = if (expected != null) {
+                "export EXPECTED_W=${expected.first}\nexport EXPECTED_H=${expected.second}\n"
+            } else {
+                ""
+            }
             val script = """
                 export DISPLAY=:0
                 export PATH="${'$'}HOME/.local/bin:${'$'}PREFIX/bin:/usr/bin:/bin:${'$'}PATH"
+                $exportExpected
                 ${XfceMobileProfile.fitWindowsScript()}
             """.trimIndent()
             try {
@@ -257,12 +318,77 @@ class DesktopActivity : Activity() {
                 if (result.startsWith("Error:")) {
                     Log.w(TAG, "resizeLinuxWindowsToFit: $result")
                 } else {
-                    Log.i(TAG, "resizeLinuxWindowsToFit finished")
+                    Log.i(
+                        TAG,
+                        "resizeLinuxWindowsToFit finished expected=${expected?.first}x${expected?.second}",
+                    )
                 }
             } catch (error: Throwable) {
                 Log.w(TAG, "resizeLinuxWindowsToFit failed", error)
             }
         }, "ResizeLinuxWindows").start()
+    }
+
+    private fun applyXfceLayout(mode: String) {
+        if (!isSessionRunning()) return
+        Thread({
+            val script = """
+                export DISPLAY=:0
+                export PATH="${'$'}HOME/.local/bin:${'$'}PREFIX/bin:/usr/bin:/bin:${'$'}PATH"
+                ${XfceMobileProfile.applyLayoutScript(mode)}
+            """.trimIndent()
+            try {
+                if (sessionMode == "chroot") {
+                    chrootRuntime.executeCommand(script)
+                } else {
+                    linuxRuntime.executeDetached(script)
+                }
+                Log.i(TAG, "Applied XFCE layout mode=$mode")
+            } catch (error: Throwable) {
+                Log.w(TAG, "applyXfceLayout failed", error)
+            }
+        }, "XfceLayout").start()
+    }
+
+    /**
+     * When an HDMI/DeX/secondary display is active, prefer the docked XFCE
+     * density. Full framebuffer switch stays on VNC share unless we already
+     * are in vnc mode.
+     */
+    private fun maybeApplyExternalDesktopMode() {
+        if (isFinishing || lorieView == null) return
+        if (lastDisplayMode == X11InputController.DISPLAY_MODE_VNC) {
+            applyXfceLayout("docked")
+            return
+        }
+        val external = hasExternalOrDexDisplay()
+        if (external) {
+            if (lastDisplayMode != X11InputController.DISPLAY_MODE_DOCKED) {
+                lastDisplayMode = X11InputController.DISPLAY_MODE_DOCKED
+                Log.i(TAG, "External/DeX display detected — docked XFCE layout")
+                Toast.makeText(this, "External display: desktop layout", Toast.LENGTH_SHORT).show()
+            }
+            applyXfceLayout("docked")
+        } else if (lastDisplayMode == X11InputController.DISPLAY_MODE_DOCKED) {
+            lastDisplayMode = X11InputController.DISPLAY_MODE_PHONE
+            applyXfceLayout("phone")
+            resizeLinuxWindowsToFit()
+        }
+    }
+
+    private fun hasExternalOrDexDisplay(): Boolean {
+        return try {
+            if (com.termux.x11.utils.SamsungDexUtils.checkDeXEnabled(this)) {
+                return true
+            }
+            val dm = getSystemService(DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+            dm.displays.any { display ->
+                display.displayId != android.view.Display.DEFAULT_DISPLAY &&
+                    display.state != android.view.Display.STATE_OFF
+            }
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -329,7 +455,6 @@ class DesktopActivity : Activity() {
         val lp = desktopSurface.layoutParams as FrameLayout.LayoutParams
         lp.setMargins(left, top, right, bottom)
         desktopSurface.layoutParams = lp
-        // Outer placeholder stays black → visible border around the Linux surface.
         placeholder.setBackgroundColor(Color.BLACK)
     }
 
@@ -487,41 +612,74 @@ class DesktopActivity : Activity() {
         val normalized = when {
             mode == X11InputController.DISPLAY_MODE_VNC || mode.startsWith("1920") ->
                 X11InputController.DISPLAY_MODE_VNC
+            mode == X11InputController.DISPLAY_MODE_DOCKED ->
+                X11InputController.DISPLAY_MODE_DOCKED
             else -> X11InputController.DISPLAY_MODE_PHONE
         }
         if (!force && normalized == lastDisplayMode) return
         lastDisplayMode = normalized
         Log.i(TAG, "Applying display mode=$normalized")
-        if (normalized == X11InputController.DISPLAY_MODE_VNC) {
-            X11InputController.applyVncDesktopPrefs()
-            Toast.makeText(this, "VNC desktop: 1920×1080", Toast.LENGTH_SHORT).show()
-        } else {
-            X11InputController.applyPhoneDisplayPrefs()
+        when (normalized) {
+            X11InputController.DISPLAY_MODE_VNC -> {
+                X11InputController.applyVncDesktopPrefs()
+                Toast.makeText(this, "VNC desktop: 1920×1080", Toast.LENGTH_SHORT).show()
+                applyXfceLayout("docked")
+            }
+            X11InputController.DISPLAY_MODE_DOCKED -> {
+                X11InputController.applyPhoneDisplayPrefs()
+                applyXfceLayout("docked")
+            }
+            else -> {
+                X11InputController.applyPhoneDisplayPrefs()
+                applyXfceLayout("phone")
+            }
         }
         refreshX11Viewport("display-mode-$normalized")
         desktopSurface.postDelayed({ resizeLinuxWindowsToFit() }, 500)
         desktopSurface.postDelayed({ resizeLinuxWindowsToFit() }, 1200)
+        desktopSurface.postDelayed({ resizeLinuxWindowsToFit() }, 2000)
     }
 
     private fun addDesktopControls() {
         if (controlOverlay != null) return
         val density = resources.displayMetrics.density
+        val cream = Color.parseColor("#ECE8E1")
+        val muted = Color.parseColor("#9AA3B5")
+        val pillFill = Color.argb(230, 18, 24, 36)
+        val pillStroke = Color.argb(120, 167, 139, 250)
 
-        fun controlButton(label: String) = Button(this).apply {
-            isAllCaps = false
-            minWidth = 0
-            minHeight = 0
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding((12 * density).toInt(), 0, (12 * density).toInt(), 0)
-            backgroundTintList = ColorStateList.valueOf(Color.argb(220, 28, 38, 52))
-            elevation = 6 * density
-            text = label
+        fun pillDrawable(radiusDp: Float = 22f) = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusDp * density
+            setColor(pillFill)
+            setStroke((1.2f * density).toInt().coerceAtLeast(1), pillStroke)
         }
 
-        val dragHandle = controlButton("⋮").apply {
+        fun controlButton(label: String, compact: Boolean = false) = TextView(this).apply {
+            text = label
+            textSize = if (compact) 15f else 12.5f
+            setTextColor(cream)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0.02f
+            gravity = Gravity.CENTER
+            isClickable = true
+            isFocusable = true
+            background = null
+            val hPad = ((if (compact) 10 else 14) * density).toInt()
+            setPadding(hPad, 0, hPad, 0)
+            // Subtle press feedback
+            setOnTouchListener { v, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> v.alpha = 0.55f
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.alpha = 1f
+                }
+                false
+            }
+        }
+
+        val dragHandle = controlButton("⠿", compact = true).apply {
             contentDescription = "Drag desktop controls"
-            setPadding((8 * density).toInt(), 0, (8 * density).toInt(), 0)
+            setTextColor(muted)
         }
         val keyboardButton = controlButton("Keyboard").apply {
             setOnClickListener { showKeyboard() }
@@ -533,7 +691,8 @@ class DesktopActivity : Activity() {
                 Toast.makeText(this@DesktopActivity, "Input mode: $text", Toast.LENGTH_SHORT).show()
             }
         }
-        val dashboardButton = controlButton("Dashboard").apply {
+        val dashboardButton = controlButton("Home").apply {
+            contentDescription = "ServalDesk dashboard"
             setOnClickListener { openFlutterDashboard() }
             setOnLongClickListener {
                 openHomeSettings()
@@ -548,38 +707,44 @@ class DesktopActivity : Activity() {
                 true
             }
         }
-        val hideButton = controlButton("−").apply {
+        val hideButton = controlButton("−", compact = true).apply {
             contentDescription = "Hide desktop controls"
+            setTextColor(muted)
             setOnClickListener { setControlsCollapsed(true) }
-            setPadding((9 * density).toInt(), 0, (9 * density).toInt(), 0)
         }
 
+        fun divider() = View(this).apply {
+            setBackgroundColor(Color.argb(50, 236, 232, 225))
+            layoutParams = LinearLayout.LayoutParams((1 * density).toInt(), (18 * density).toInt()).apply {
+                leftMargin = (2 * density).toInt()
+                rightMargin = (2 * density).toInt()
+            }
+        }
+
+        val barHeight = (40 * density).toInt()
         controlOverlay = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(dragHandle, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
-            addView(keyboardButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
-            addView(inputModeButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
-            addView(dashboardButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
-            addView(androidButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
-            addView(hideButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
+            background = pillDrawable()
+            elevation = 10 * density
+            setPadding((6 * density).toInt(), (4 * density).toInt(), (6 * density).toInt(), (4 * density).toInt())
+            addView(dragHandle, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
+            addView(divider())
+            addView(keyboardButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
+            addView(inputModeButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
+            addView(divider())
+            addView(dashboardButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
+            addView(androidButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
+            addView(divider())
+            addView(hideButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, barHeight))
         }
 
-        collapsedControl = controlButton("☰").apply {
+        collapsedControl = controlButton("☰", compact = true).apply {
             contentDescription = "Show desktop controls"
+            background = pillDrawable(20f)
+            elevation = 10 * density
             visibility = View.INVISIBLE
+            setPadding((14 * density).toInt(), 0, (14 * density).toInt(), 0)
         }
 
         val overlayParams = FrameLayout.LayoutParams(
@@ -587,12 +752,12 @@ class DesktopActivity : Activity() {
             FrameLayout.LayoutParams.WRAP_CONTENT,
             Gravity.TOP or Gravity.END,
         ).apply {
-            rightMargin = (8 * density).toInt()
+            rightMargin = (10 * density).toInt()
             topMargin = (52 * density).toInt()
         }
         val collapsedParams = FrameLayout.LayoutParams(
-            (48 * density).toInt(),
-            (42 * density).toInt(),
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            barHeight,
             Gravity.TOP or Gravity.END,
         ).apply {
             rightMargin = overlayParams.rightMargin
